@@ -55,19 +55,22 @@
     <p class="text-xs text-slate-600">Prepared by Arpinine</p>
   </div>
   <nav class="max-w-screen-2xl mx-auto px-6 flex gap-6 -mb-px">
-    <button onclick="switchTab('strategy')" id="tab-strategy" class="tab-btn py-2.5 text-sm">Strategy Matrix</button>
-    <button onclick="switchTab('charts')" id="tab-charts" class="tab-btn py-2.5 text-sm">Data Charts</button>
-    <button onclick="switchTab('eda')" id="tab-eda" class="tab-btn py-2.5 text-sm">EDA Report</button>
+    <button onclick="switchTab('overview')" id="tab-overview" class="tab-btn py-2.5 text-sm">1. Overview</button>
+    <button onclick="switchTab('charts')" id="tab-charts" class="tab-btn py-2.5 text-sm">2. Data Evidence</button>
+    <button onclick="switchTab('eda')" id="tab-eda" class="tab-btn py-2.5 text-sm">3. Analysis</button>
+    <button onclick="switchTab('strategy')" id="tab-strategy" class="tab-btn py-2.5 text-sm">4. Strategy</button>
   </nav>
 </header>
 
 <div class="panels-host">
 
-<!-- ═══════════════ TAB 1: STRATEGY MATRIX ═══════════════ -->
-<div id="panel-strategy" class="tab-panel">
+<!-- ═══════════════ TAB 1: OVERVIEW ═══════════════ -->
+<div id="panel-overview" class="tab-panel">
 <div class="content">
 
-<h2>Executive Summary</h2>
+<h2>The Problem</h2>
+
+<p>We analyzed 28,707 breakdown events across 158 CAT 793 haul trucks over 28 months. This is what the data tells us.</p>
 
 <div class="summary-grid">
   <div class="summary-card">
@@ -84,112 +87,145 @@
   </div>
   <div class="summary-card">
     <div class="number">53%</div>
-    <div class="label">Infant mortality (repair didn't hold)</div>
+    <div class="label">Are infant mortality (repair didn't hold)</div>
   </div>
   <div class="summary-card">
     <div class="number">82%</div>
-    <div class="label">Of downtime from infant mortality</div>
+    <div class="label">Of ALL downtime from failed repairs</div>
   </div>
   <div class="summary-card">
     <div class="number">68%</div>
-    <div class="label">Predictable by VIMS (7-day signal)</div>
+    <div class="label">Predictable by VIMS telemetry</div>
   </div>
 </div>
 
-<table>
-<tr><th>Dimension</th><th>Finding</th><th>Implication</th></tr>
-<tr><td>What's breaking</td><td>4 systems cause 69%: Engine (23%), Power Train (17%), Cab/Frame/Body (15%), Hydraulics (14%)</td><td>Focus on these 4 systems first</td></tr>
-<tr><td>What it costs</td><td>1,526,345 downtime hours. Repair costs: $44.9M recorded. Production loss depends on confirmed $/hr rate</td><td>Even 10-15% reduction = millions saved</td></tr>
-<tr><td>Can we predict it</td><td>~68% show VIMS warning 7 days before. ~22% completely blind. Catastrophic failures: 83% predictable</td><td>Realistic ceiling is ~70%. Don't promise 100%</td></tr>
-<tr><td>Current system</td><td>Health scores are inverted (higher = MORE likely to fail). ML model C-index 0.607 (barely above random)</td><td>Predictive layer needs complete rebuild</td></tr>
-<tr><td>Biggest surprise</td><td>53% of breakdowns are infant mortality (repair failed within 7 days). These cause 82% of all downtime</td><td>The problem is repair quality, not prediction</td></tr>
-<tr><td>First move</td><td>Post-repair 7-day monitoring + VIMS threshold rules. No ML needed. 2 weeks to implement</td><td>Addresses 82% of downtime with zero ML</td></tr>
-</table>
-
-<h2>RCM Failure Patterns (Reliability-Centered Maintenance)</h2>
-
-<p>RCM defines six standard failure patterns. Every breakdown in the fleet maps to one of these curves. Each has a different detection method and attack strategy.</p>
+<h2>What's Breaking</h2>
 
 <table>
-<tr><th>Pattern</th><th>Curve</th><th>Behavior</th><th>AISCC Example</th><th>Detection</th><th>Strategy</th></tr>
-<tr><td><strong>A -- Bathtub</strong> <span class="badge badge-red">Complex</span></td><td>High early, low middle, high end</td><td>High infant mortality after repair, stable period, then wear-out at end of component life</td><td>Engine rebuilds: 66% fail within 7 days post-repair. Survivors run stable. Eventual wear-out</td><td>Post-repair monitoring (infant phase) + VIMS trend (wear-out phase)</td><td>Enhanced post-repair QC + component life tracking. Two interventions: one early, one at end of life</td></tr>
-<tr><td><strong>B -- Wear-out</strong> <span class="badge badge-green">Predictable</span></td><td>Stable low, then sharp rise</td><td>Reliable operation until component reaches end of life, then failure probability spikes</td><td>Duo Cone Seal Final Drive: reliable until seal life is exceeded, then 100% repeat failure. Filter overdue events</td><td>Component age/hours tracking. VIMS gradual escalation in final phase</td><td>Time/usage-based replacement BEFORE wear-out point. This is classic PM scheduling</td></tr>
-<tr><td><strong>C -- Fatigue</strong> <span class="badge badge-amber">Gradual</span></td><td>Gradually increasing, no sharp point</td><td>Failure probability increases slowly with age/usage. No clear "replace at X hours" point</td><td>Hydraulic system degradation: pressure slowly drops, seals gradually wear. 14% of breakdowns show VIMS escalation pattern over days/weeks</td><td>VIMS trend monitoring (P-F curve). SOS oil degradation trends</td><td>Condition-based maintenance. Monitor the degradation curve, pull when threshold crossed. This is where predictive models add most value</td></tr>
-<tr><td><strong>D -- Break-in</strong> <span class="badge badge-blue">Stabilizing</span></td><td>Low initially, rises to constant</td><td>New or recently overhauled component starts reliable, then settles into a constant random failure rate</td><td>Post-overhaul trucks: initial low failure period, then return to fleet-average breakdown rate</td><td>Fleet average comparison. If truck exceeds fleet MTBF, investigate</td><td>Accept the steady-state rate. Focus on reducing it through design improvements, not prediction</td></tr>
-<tr><td><strong>E -- Random</strong> <span class="badge badge-amber">Unpredictable</span></td><td>Flat constant line</td><td>Equal failure probability at any time. No age relationship. No warning signal</td><td>22% of breakdowns arrive with zero VIMS warning. Electrical failures (25.6% blind). AC system failures. External damage</td><td>Cannot be predicted by condition monitoring</td><td>Rapid response protocols. Pre-positioned spare parts. Redundancy where possible. Accept unpredictability</td></tr>
-<tr><td><strong>F -- Infant Mortality</strong> <span class="badge badge-red">Critical</span></td><td>High initial, drops to constant</td><td>High failure rate immediately after maintenance/repair, then drops to stable level if it survives the initial period</td><td><strong>53% of all breakdowns. 82% of all downtime.</strong> 66-68% of Engine and Power Train repairs fail within 7 days</td><td>Post-repair VIMS monitoring. 7-day watch window</td><td>Mandatory post-repair monitoring. Enhanced inspection before release. Repair quality audit. Root cause the quality issue</td></tr>
-</table>
-
-<h3>How Our Fleet Data Maps to Each Pattern</h3>
-
-<table>
-<tr><th>RCM Pattern</th><th>% of Fleet Breakdowns</th><th>% of Downtime</th><th>VIMS Detectable?</th><th>Primary Attack</th></tr>
-<tr><td><strong>F -- Infant Mortality</strong></td><td><strong>53%</strong></td><td><strong>82%</strong></td><td>Yes (post-repair monitoring)</td><td>Fix repair quality</td></tr>
-<tr><td><strong>E -- Random</strong></td><td>~22%</td><td>~9%</td><td>No (completely blind)</td><td>Rapid response, spare parts</td></tr>
-<tr><td><strong>C -- Fatigue (gradual)</strong></td><td>~14%</td><td>Low</td><td>Yes (VIMS trend)</td><td>Condition-based monitoring</td></tr>
-<tr><td><strong>B -- Wear-out</strong></td><td>Subset of above</td><td>High per event</td><td>Component life tracking</td><td>Scheduled replacement</td></tr>
-<tr><td><strong>A -- Bathtub</strong></td><td>Overlaps F + B</td><td>Overlaps F + B</td><td>Both phases detectable</td><td>Two-phase monitoring</td></tr>
-<tr><td><strong>D -- Break-in</strong></td><td>Small subset</td><td>Low</td><td>Fleet average comparison</td><td>Accept steady-state rate</td></tr>
+<tr><th>System</th><th>% of Breakdowns</th><th>Total Down Hours</th><th>Repair Costs</th><th>Infant Mortality Rate</th></tr>
+<tr><td><strong>Engine</strong></td><td>22.9%</td><td>269,026</td><td>$10.7M</td><td>66.2%</td></tr>
+<tr><td><strong>Power Train</strong></td><td>17.1%</td><td>316,816</td><td>$9.5M</td><td>68.5%</td></tr>
+<tr><td><strong>Cab/Frame/Body</strong></td><td>15.1%</td><td>353,802</td><td>$18.3M</td><td>59.0%</td></tr>
+<tr><td><strong>Hydraulics</strong></td><td>14.0%</td><td>304,261</td><td>$4.2M</td><td>61.7%</td></tr>
+<tr><td>Other 9 systems</td><td>30.9%</td><td>282,440</td><td>$2.2M</td><td>31-54%</td></tr>
 </table>
 
 <div class="finding critical">
-<strong>Key Finding:</strong> Pattern F (Infant Mortality) dominates the fleet: 53% of events, 82% of downtime (1,225,392 hours). 66-68% of Engine and Power Train repairs fail within 7 days. In RCM terms, the fleet's primary failure mode is maintenance-induced -- the repairs themselves are the leading cause of breakdowns. This is not a prediction problem; it's a repair quality problem.
+<strong>The surprise:</strong> The biggest problem is not predicting failures -- it's that repairs don't hold. 53% of all breakdowns are repeat failures within 7 days of a repair on the same system. These cause 82% of all downtime hours. Two out of three Engine and Power Train repairs fail within a week.
 </div>
 
-<div class="finding success">
-<strong>RCM Insight:</strong> Pattern C (Fatigue/gradual degradation) is where predictive maintenance and ML models add the most value -- these are the failures with a visible P-F curve. But at only ~14% of breakdowns, even a perfect predictive model addresses a minority of the problem. Fixing Pattern F (repair quality) has 6x more impact.
-</div>
+<h2>RCM Failure Patterns (A-F)</h2>
 
-<h2>Infant Mortality Rate by System</h2>
+<p>Reliability-Centered Maintenance defines six standard failure curves. Every breakdown maps to one. Each has a different attack strategy.</p>
+
 <table>
-<tr><th>System</th><th>Total Events</th><th>Infant Mortality (<=7d)</th><th>Rate</th><th>Downtime from Infant Failures</th></tr>
-<tr><td>Power Train</td><td>1,983</td><td>1,359</td><td><strong>68.5%</strong></td><td>272,289 hrs</td></tr>
-<tr><td>Engine</td><td>2,038</td><td>1,349</td><td><strong>66.2%</strong></td><td>229,477 hrs</td></tr>
-<tr><td>Hydraulics</td><td>1,610</td><td>994</td><td><strong>61.7%</strong></td><td>260,837 hrs</td></tr>
-<tr><td>Cab/Frame/Body</td><td>1,734</td><td>1,023</td><td><strong>59.0%</strong></td><td>303,165 hrs</td></tr>
-<tr><td>Electrical</td><td>299</td><td>124</td><td>41.5%</td><td>35,769 hrs</td></tr>
+<tr><th>Pattern</th><th>Curve</th><th>Behavior</th><th>Fleet Example</th><th>Strategy</th></tr>
+<tr><td><strong>A -- Bathtub</strong> <span class="badge badge-red">Complex</span></td><td>High early, low middle, high end</td><td>High infant mortality after repair, stable period, then wear-out at end of life</td><td>Engine rebuilds: 66% fail within 7d post-repair. Survivors run stable. Eventual wear-out</td><td>Post-repair QC + component life tracking</td></tr>
+<tr><td><strong>B -- Wear-out</strong> <span class="badge badge-green">Predictable</span></td><td>Stable low, then sharp rise</td><td>Reliable until component reaches end of life, then spikes</td><td>Duo Cone Seal Final Drive: reliable until seal life exceeded, then 100% repeat failure</td><td>Time/usage-based replacement BEFORE wear-out</td></tr>
+<tr><td><strong>C -- Fatigue</strong> <span class="badge badge-amber">Gradual</span></td><td>Gradually increasing</td><td>Failure probability increases slowly. No clear "replace at X hours" point</td><td>Hydraulic degradation: 14% of breakdowns show VIMS escalation over days/weeks</td><td>Condition-based monitoring (P-F curve). Best use case for predictive ML</td></tr>
+<tr><td><strong>D -- Break-in</strong> <span class="badge badge-blue">Stabilizing</span></td><td>Low, then rises to constant</td><td>New component starts reliable, then settles into constant random rate</td><td>Post-overhaul trucks return to fleet-average breakdown rate</td><td>Accept steady-state. Improve through design changes</td></tr>
+<tr><td><strong>E -- Random</strong> <span class="badge badge-amber">Unpredictable</span></td><td>Flat constant</td><td>Equal failure probability at any time. No warning signal</td><td>22% of breakdowns with zero VIMS warning. Electrical failures (25.6% blind)</td><td>Rapid response. Pre-positioned parts. Accept unpredictability</td></tr>
+<tr><td><strong>F -- Infant Mortality</strong> <span class="badge badge-red">Critical</span></td><td>High initial, drops to constant</td><td>High failure rate immediately after maintenance, drops if it survives initial period</td><td><strong>53% of events. 82% of downtime.</strong> 66-68% of Engine/PT repairs fail in 7 days</td><td>Post-repair monitoring. Repair quality audit. Root cause</td></tr>
 </table>
 
+<h3>Fleet Distribution Across Patterns</h3>
+
+<table>
+<tr><th>RCM Pattern</th><th>% of Breakdowns</th><th>% of Downtime</th><th>VIMS Detectable?</th><th>Primary Attack</th></tr>
+<tr><td><strong>F -- Infant Mortality</strong></td><td><strong>53%</strong></td><td><strong>82%</strong></td><td>Yes (post-repair watch)</td><td>Fix repair quality</td></tr>
+<tr><td><strong>E -- Random</strong></td><td>~22%</td><td>~9%</td><td>No (blind)</td><td>Rapid response</td></tr>
+<tr><td><strong>C -- Fatigue</strong></td><td>~14%</td><td>Low</td><td>Yes (VIMS trend)</td><td>Condition monitoring / ML</td></tr>
+<tr><td><strong>B -- Wear-out</strong></td><td>Subset</td><td>High per event</td><td>Component life</td><td>Scheduled replacement</td></tr>
+<tr><td><strong>A -- Bathtub</strong></td><td>Overlaps F+B</td><td>Overlaps F+B</td><td>Both phases</td><td>Two-phase approach</td></tr>
+<tr><td><strong>D -- Break-in</strong></td><td>Small</td><td>Low</td><td>Fleet comparison</td><td>Accept rate</td></tr>
+</table>
+
+<div class="finding success">
+<strong>RCM Insight:</strong> Pattern C (Fatigue) is where predictive ML adds the most value -- these have a visible P-F curve. But at ~14% of breakdowns, even a perfect model addresses a minority. Fixing Pattern F (repair quality) has <strong>6x more impact</strong>.
+</div>
+
+<h2>Current System Status</h2>
+
+<table>
+<tr><th>Component</th><th>Status</th><th>Issue</th></tr>
+<tr><td>Health Scores</td><td><span class="badge badge-red">Inverted</span></td><td>Trucks score 10-25 points HIGHER before breakdowns. The system directs attention away from at-risk trucks. Difference between pre-breakdown and normal: 1.1 points on a 100-point scale (effectively zero discrimination)</td></tr>
+<tr><td>TTD Model</td><td><span class="badge badge-red">Near-random</span></td><td>C-index 0.607 (0.50 = coin flip). Gets priority ranking wrong 4 out of 10 times. Uses only 1 of 8 data sources. Not marked production-ready</td></tr>
+<tr><td>Agentic Pipeline</td><td><span class="badge badge-amber">Premature</span></td><td>6 agents built to discover new features for a model that doesn't use the existing 723 features</td></tr>
+<tr><td>Data Infrastructure</td><td><span class="badge badge-green">Solid</span></td><td>8 adapters, 723 features, Snowflake pipeline, MLflow tracking. Infrastructure is ready -- needs proper model training</td></tr>
+</table>
+
+<h2>The Recommendation (60-second version)</h2>
+
+<div class="box" style="border-color:#22c55e;">
+<p style="font-size:1rem; color:#f8fafc; line-height:1.8;">
+<strong>The fleet's #1 problem is not prediction -- it's repair quality.</strong> 53% of breakdowns are repairs that failed within 7 days, causing 82% of downtime. A simple post-repair monitoring rule (7-day VIMS watch, don't redeploy if alerts return) addresses more downtime than any ML model. Implement it in 2 weeks with zero ML. Then fix the health scores, build a proper survival model, and address root causes. Details in the Strategy tab.
+</p>
+</div>
+
+</div>
+</div>
+
+<!-- ═══════════════ TAB 4: STRATEGY ═══════════════ -->
+<div id="panel-strategy" class="tab-panel">
+<div class="content">
+
+<h2>Three-Box Strategy</h2>
+
+<p>Based on the RCM failure pattern analysis and EDA findings, we recommend three phases of intervention.</p>
+
+<div class="box" style="border-color:#22c55e;">
+<h3>Box A: Quick Wins (This Month) <span class="badge badge-green">No ML Required</span></h3>
+<p style="color:#94a3b8; margin-bottom:0.75rem;">Targets Pattern F (Infant Mortality) + Pattern C (gradual, detectable by VIMS)</p>
+<table>
+<tr><th>Action</th><th>What</th><th>RCM Pattern</th><th>Expected Capture</th><th>Effort</th></tr>
+<tr><td>Post-repair monitoring</td><td>After Engine/PT/Hydraulics repair: 7-day enhanced VIMS watch. If alerts return, don't redeploy</td><td>F -- Infant Mortality</td><td>82% of downtime hours</td><td>2 weeks (process)</td></tr>
+<tr><td>VIMS 7-day threshold</td><td>Flag trucks with >500 alerts in trailing 7 days</td><td>C -- Fatigue</td><td>~68% of breakdowns</td><td>1 week (software)</td></tr>
+<tr><td>Transmission-specific alert</td><td>VIMS transmission temp + shifting alerts</td><td>C -- Fatigue</td><td>87.5% of transmission failures</td><td>3 days</td></tr>
+</table>
+</div>
+
+<div class="box" style="border-color:#3b82f6;">
+<h3>Box B: Data-Driven Optimization (Next Quarter) <span class="badge badge-blue">Tuned Model</span></h3>
+<p style="color:#94a3b8; margin-bottom:0.75rem;">Targets Pattern C (gradual) with proper ML + Pattern B (wear-out) with component tracking</p>
+<table>
+<tr><th>Action</th><th>What</th><th>RCM Pattern</th><th>Expected Improvement</th><th>Effort</th></tr>
+<tr><td>Fix health scores</td><td>Re-derive weights from breakdown data. Invert scoring logic</td><td>All patterns</td><td>Scores become directionally correct</td><td>2 weeks</td></tr>
+<tr><td>Train survival model</td><td>Cox PH with 35 features from VIMS + Maintenance + SOS</td><td>C -- Fatigue</td><td>C-index > 0.70 (vs current 0.607)</td><td>1 month</td></tr>
+<tr><td>Component life tracking</td><td>Track hours/cycles on seals, bearings, filters against known wear-out limits</td><td>B -- Wear-out</td><td>Prevent 100%-repeat failures like Duo Cone Seal</td><td>1 month</td></tr>
+<tr><td>Repair quality audit</td><td>Investigate why 66-68% of repairs fail in 7 days. Parts quality? Procedures? Training?</td><td>F -- Infant Mortality</td><td>Reduce total event count at root</td><td>Ongoing</td></tr>
+</table>
+</div>
+
+<div class="box" style="border-color:#f59e0b;">
+<h3>Box Z: New Data Sources (Next Year) <span class="badge badge-amber">Hardware</span></h3>
+<p style="color:#94a3b8; margin-bottom:0.75rem;">Targets Pattern E (random/blind) -- the ~22% we can't currently see</p>
+<table>
+<tr><th>Action</th><th>What</th><th>RCM Pattern</th><th>Expected Improvement</th><th>Effort</th></tr>
+<tr><td>Vibration monitoring</td><td>Sensors for bearing/structural failures</td><td>E -- Random (convert to C)</td><td>Catch A-frame failures (currently 54% blind)</td><td>6-12 months + hardware</td></tr>
+<tr><td>Digital inspection forms</td><td>Structured inspection data into model</td><td>E -- Random (add human signals)</td><td>Human-observed signs currently not captured</td><td>3 months</td></tr>
+</table>
+</div>
+
 <h2>Top Root Cause Elimination Targets</h2>
+<p>These chronic failures should be eliminated permanently, not predicted. Each has a 100% repeat rate.</p>
 <table>
 <tr><th>Failure Mode</th><th>System</th><th>Events</th><th>Repeat Rate</th><th>Total Down Hours</th><th>Elimination Path</th></tr>
-<tr><td>Duo Cone Seal Final Drive LH Leak</td><td>Hydraulics</td><td>126+</td><td>100%</td><td>88,000+</td><td>Engineering review of seal design/spec</td></tr>
-<tr><td>Engine Hydraulic Lock (oil-coolant mix)</td><td>Engine</td><td>80+</td><td>100%</td><td>24,000+</td><td>Find coolant entry point. Redesign separator</td></tr>
-<tr><td>Brake Temp High + Hydraulic Flush</td><td>Power Train</td><td>96+</td><td>100%</td><td>56,000+</td><td>Root cause hydraulic contamination source</td></tr>
+<tr><td>Duo Cone Seal Final Drive LH Leak</td><td>Hydraulics</td><td>126+</td><td>100%</td><td>88,000+</td><td>Engineering review of seal design/spec. Pattern B -- component exceeds design life</td></tr>
+<tr><td>Engine Hydraulic Lock (oil-coolant mix)</td><td>Engine</td><td>80+</td><td>100%</td><td>24,000+</td><td>Find coolant entry point. Redesign separator. Pattern A -- bathtub infant phase</td></tr>
+<tr><td>Brake Temp High + Hydraulic Flush</td><td>Power Train</td><td>96+</td><td>100%</td><td>56,000+</td><td>Root cause hydraulic contamination. Pattern F -- repair-induced</td></tr>
 <tr><td>HT094 Accident Cascade</td><td>All</td><td>139</td><td>100%</td><td>311,000</td><td>Data cleanup or truck retirement</td></tr>
 <tr><td>HT005 Chronic Failures</td><td>All</td><td>525</td><td>N/A</td><td>399,000+</td><td>Evaluate retirement vs major overhaul</td></tr>
 </table>
 
-<h2>Three-Box Strategy</h2>
-
-<div class="box">
-<h3>Box A: Quick Wins (This Month) <span class="badge badge-green">No ML Required</span></h3>
+<h2>Monitoring: How We Know It's Working</h2>
 <table>
-<tr><th>Action</th><th>What</th><th>Expected Capture</th><th>Effort</th></tr>
-<tr><td>Post-repair monitoring</td><td>After Engine/PT/Hydraulics repair: 7-day enhanced VIMS watch. If alerts return, don't redeploy</td><td>82% of downtime hours</td><td>2 weeks (process)</td></tr>
-<tr><td>VIMS 7-day threshold</td><td>Flag trucks with >500 alerts in trailing 7 days</td><td>~68% of breakdowns</td><td>1 week (software)</td></tr>
-<tr><td>Transmission-specific alert</td><td>VIMS transmission temp + shifting alerts</td><td>87.5% of transmission failures</td><td>3 days</td></tr>
+<tr><th>KPI</th><th>Baseline (Current)</th><th>Target (6 Months)</th></tr>
+<tr><td>Unplanned downtime hours/month</td><td>~55,000</td><td>&lt;44,000 (20% reduction)</td></tr>
+<tr><td>Median time between breakdowns</td><td>4 days</td><td>&gt;6 days</td></tr>
+<tr><td>Catastrophic events (7d+)/month</td><td>~76</td><td>&lt;60</td></tr>
+<tr><td>Infant mortality rate (Engine)</td><td>66.2%</td><td>&lt;50%</td></tr>
+<tr><td>Infant mortality rate (Power Train)</td><td>68.5%</td><td>&lt;50%</td></tr>
 </table>
-</div>
-
-<div class="box">
-<h3>Box B: Data-Driven Optimization (Next Quarter) <span class="badge badge-blue">Tuned Model</span></h3>
-<table>
-<tr><th>Action</th><th>What</th><th>Expected Improvement</th><th>Effort</th></tr>
-<tr><td>Fix health scores</td><td>Re-derive weights from breakdown data. Invert scoring logic</td><td>Scores become directionally correct</td><td>2 weeks</td></tr>
-<tr><td>Train survival model</td><td>Cox PH with 35 features from VIMS + Maintenance + SOS</td><td>C-index > 0.70 (vs current 0.607)</td><td>1 month</td></tr>
-<tr><td>Address repeat failures</td><td>Investigate why 66-68% of repairs fail in 7 days</td><td>Reduce total event count at root</td><td>Ongoing</td></tr>
-</table>
-</div>
-
-<div class="box">
-<h3>Box Z: New Data Sources (Next Year) <span class="badge badge-amber">Hardware</span></h3>
-<table>
-<tr><th>Action</th><th>What</th><th>Expected Improvement</th><th>Effort</th></tr>
-<tr><td>Vibration monitoring</td><td>Sensors for bearing/structural failures</td><td>Catch A-frame failures (currently 54% blind)</td><td>6-12 months + hardware</td></tr>
-<tr><td>Digital inspection forms</td><td>Structured inspection data into model</td><td>Add human-observed signals</td><td>3 months</td></tr>
-</table>
-</div>
 
 <h2>Key Metric Explanations</h2>
 
@@ -200,7 +236,7 @@
 <p>Average score before breakdowns: 68.4. Average during normal operation: 69.5. On a 100-point scale, 1.1 points is noise -- you cannot distinguish a truck about to fail from a healthy one. Worse, component-level scores are <strong>inverted</strong>: trucks score 10-25 points HIGHER before breakdowns, likely because recent repairs temporarily boost scores.</p>
 
 <h4>Production Loss Rate</h4>
-<p>Dollar figures in this analysis use a <strong>placeholder of $5,000/hr</strong> of unplanned truck downtime. Industry benchmarks range $2,000-$15,000/hr for mining haul trucks. This should be replaced with Amman's actual cost per hour. All dollar figures scale linearly.</p>
+<p>Dollar figures should use Amman's actual cost per hour of unplanned truck downtime. Industry benchmarks range $2,000-$15,000/hr for mining haul trucks depending on commodity prices and mine productivity.</p>
 
 </div>
 </div>
@@ -355,7 +391,7 @@ function switchTab(name) {
   document.getElementById('panel-' + name).classList.add('active');
   document.getElementById('tab-' + name).classList.add('active');
 }
-switchTab('strategy');
+switchTab('overview');
 
 // ── Chart defaults ──
 Chart.defaults.color = '#94a3b8';
