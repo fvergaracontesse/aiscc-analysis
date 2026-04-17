@@ -247,7 +247,120 @@
 <div class="content">
 
 <h2>Failure Mode Explorer</h2>
-<p style="color:#94a3b8; margin-bottom:1rem;">Click a pattern to drill down into the specific failure modes. Each mode shows: predictability, severity, infant mortality rate, and recommended attack strategy.</p>
+<p style="color:#94a3b8; margin-bottom:0.5rem;">Click a pattern to drill down into the specific failure modes. Each mode shows: predictability, severity, infant mortality rate, and recommended attack strategy.</p>
+
+<details style="margin-bottom:1.5rem; background:#1e293b; border:1px solid #334155; border-radius:10px; padding:0;">
+<summary style="cursor:pointer; padding:1rem 1.25rem; font-size:0.9rem; font-weight:600; color:#93c5fd; list-style:none;">
+  How was this data calculated? (click to expand methodology)
+</summary>
+<div style="padding:0 1.25rem 1.25rem;">
+
+<h4>What counts as a "breakdown"?</h4>
+<p>A breakdown is a record in the AMT (Asset Management Tool) shift log where <code>BREAKDOWN = TRUE</code>. This is a field set by the maintenance team when logging an event -- it means the truck had an <strong>unplanned stop</strong> that required maintenance intervention.</p>
+<p><strong>We only included breakdowns with >= 4 hours of downtime</strong> (<code>ACTUALDOWNHOURS >= 4</code>). This filters out quick inspections, minor adjustments, and false entries. Events under 4 hours are excluded from all metrics in this explorer.</p>
+<p><strong>Period:</strong> June 2024 to April 2026 (22 months). <strong>Fleet:</strong> Only CAT 793 trucks (equipment ID starting with "HT", model containing "793").</p>
+
+<h4>Source Table</h4>
+<div class="box" style="background:#0f172a; padding:1rem; font-family:monospace; font-size:0.78rem; line-height:1.6; overflow-x:auto;">
+SOURCE_3RDPARTYAPPS.AMT_DBO_SHIFTLOG_EVENTS_V<br>
+Key columns used:<br>
+&nbsp;&nbsp;EQPPLAN &rarr; Truck ID (e.g., HT042)<br>
+&nbsp;&nbsp;BREAKDOWN &rarr; TRUE/FALSE flag set by maintenance team<br>
+&nbsp;&nbsp;ACTUALDOWNTIME &rarr; Timestamp when breakdown started<br>
+&nbsp;&nbsp;ACTUALDOWNHOURS &rarr; Total hours of downtime for this event<br>
+&nbsp;&nbsp;COMPONENTCODE &rarr; Component code (mapped to system via GOLD_COMPONENT_GROUP_MAPPING)<br>
+&nbsp;&nbsp;EVENTDESCRIPTION &rarr; Free-text description of what happened<br>
+&nbsp;&nbsp;COST &rarr; Recorded repair cost (58.4% null -- unreliable)
+</div>
+
+<h4>How each metric is calculated</h4>
+
+<table>
+<tr><th>Metric</th><th>What it means</th><th>How it's calculated</th></tr>
+<tr>
+<td><strong>Events</strong></td>
+<td>Number of breakdown records matching this failure mode</td>
+<td><code>COUNT(*)</code> where BREAKDOWN=TRUE, ACTUALDOWNHOURS >= 4, EVENTDESCRIPTION matches, and equipment is HT% / 793 model</td>
+</tr>
+<tr>
+<td><strong>Trucks Affected</strong></td>
+<td>How many different trucks experienced this failure</td>
+<td><code>COUNT(DISTINCT TRUCK_ID)</code> -- tells you if this is a fleet-wide problem (many trucks) or truck-specific (few trucks, many events)</td>
+</tr>
+<tr>
+<td><strong>Avg Down Hours</strong></td>
+<td>Average duration of each breakdown event in hours</td>
+<td><code>AVG(ACTUALDOWNHOURS)</code> across all events of this type. Note: some events have ACTUALDOWNHOURS = 0 (data quality issue, excluded by our >= 4h filter)</td>
+</tr>
+<tr>
+<td><strong>Total Down Hours</strong></td>
+<td>Sum of all downtime caused by this failure mode</td>
+<td><code>SUM(ACTUALDOWNHOURS)</code>. This is the cost impact metric -- higher = more production lost</td>
+</tr>
+<tr>
+<td><strong>Infant Mortality %</strong></td>
+<td>What percentage of these events occurred within 7 days of a PREVIOUS breakdown on the same truck AND same system</td>
+<td>For each event, we look at the previous event on the same truck + same component system using:<br>
+<code style="font-size:0.75rem;">LAG(event_timestamp) OVER (PARTITION BY truck_id, system ORDER BY event_timestamp)</code><br>
+If <code>DATEDIFF(day, previous_event, this_event) <= 7</code>, it's counted as infant mortality.<br>
+<strong>Infant % = infant events / events with a previous event * 100</strong><br>
+<br>
+<strong>Important caveat:</strong> This measures same-SYSTEM recurrence, not same-DESCRIPTION. A truck with an engine coolant leak fixed on Monday, then an engine oil pressure failure on Friday counts as infant mortality (same system: Engine, within 7 days) even though the specific failure is different. This is a proxy -- it likely overestimates true repair-failure rate by 10-20%.</td>
+</tr>
+<tr>
+<td><strong>VIMS Predictable %</strong></td>
+<td>What percentage of these breakdowns had at least 1 VIMS health alarm in the 7 days BEFORE the breakdown</td>
+<td>For each breakdown event, we count VIMS alerts from the <code>SILVER_HEALTH_ALARM_EVENT</code> table where:<br>
+<code style="font-size:0.75rem;">EQUIPMENT_ID = truck_id AND ACTIVATION_DATE >= event_date - 7 days AND ACTIVATION_DATE < event_date</code><br>
+If count > 0, the event is "VIMS predictable."<br>
+<strong>VIMS % = events with >= 1 alert / total events * 100</strong><br>
+<br>
+<strong>Important caveat:</strong> VIMS alerts are not specific to the component that failed. A truck might have brake temperature alerts before an engine failure. The alert existed, but it may not be causally related to this specific failure mode. This metric shows correlation, not causation.</td>
+</tr>
+<tr>
+<td><strong>Avg VIMS When Present</strong></td>
+<td>When a breakdown DID have VIMS alerts, how many alerts were there on average in the 7-day window</td>
+<td><code>AVG(alert_count)</code> only for events where alert_count > 0. Higher = stronger signal. A value of 1,549 means almost 1,500 VIMS alerts in 7 days -- an alarm storm. A value of 60 means a few quiet alerts.</td>
+</tr>
+<tr>
+<td><strong>Catastrophic Count</strong></td>
+<td>How many events of this type had >= 168 hours (7 days) of downtime</td>
+<td><code>COUNT WHERE ACTUALDOWNHOURS >= 168</code>. These are the most severe events -- truck out of service for a week or more. Even one catastrophic event justifies investment in prediction for that failure mode.</td>
+</tr>
+</table>
+
+<h4>How failure modes are classified into RCM patterns</h4>
+<p>The classification uses two primary metrics:</p>
+<table>
+<tr><th>Pattern</th><th>Rule</th><th>Logic</th></tr>
+<tr><td><strong>F -- Infant Mortality</strong></td><td>Infant % >= 50% AND not also showing wear-out characteristics</td><td>More than half of events are repeats within 7 days of a prior repair. The repair is the risk.</td></tr>
+<tr><td><strong>C -- Fatigue</strong></td><td>VIMS % >= 65% AND Infant % < 50%</td><td>Good VIMS signal AND repairs hold (low infant rate). Classic gradual degradation with P-F curve.</td></tr>
+<tr><td><strong>E -- Random</strong></td><td>VIMS % < 50% AND Infant % < 40%</td><td>Low VIMS signal AND repairs hold. No detectable pattern -- random occurrence.</td></tr>
+<tr><td><strong>A -- Bathtub</strong></td><td>Infant % 35-60% AND VIMS % 40-70% AND catastrophic events or high severity</td><td>Shows BOTH infant mortality and wear-out characteristics. Needs dual strategy.</td></tr>
+<tr><td><strong>B -- Wear-out</strong></td><td>Known component-life-limited items with low infant rate</td><td>Applied to seals, filters, bearings where the failure correlates with hours/cycles, not repair quality.</td></tr>
+<tr><td><strong>D -- Break-in</strong></td><td>Post-overhaul stabilization pattern (low initial, rising to constant)</td><td>Rare in this dataset. Applied when a failure mode is concentrated in recently overhauled trucks.</td></tr>
+</table>
+<p style="color:#f59e0b; font-size:0.82rem;"><strong>Note:</strong> These classifications are heuristic, not definitive. Some failure modes sit on boundaries between patterns. The "predict?" decision is based on whether the VIMS signal is strong enough AND the failure has enough economic impact to justify monitoring investment. A 70% predictable failure with 50 hours total downtime is technically predictable but not worth building a system for.</p>
+
+<h4>What "Predict: Yes / Partial / No" means</h4>
+<table>
+<tr><th>Decision</th><th>Criteria</th><th>Attack Strategy</th></tr>
+<tr><td><span class="badge badge-green">Yes</span></td><td>VIMS % >= 65% with meaningful signal strength AND sufficient downtime impact to justify monitoring</td><td>Condition-based monitoring: set VIMS alert thresholds, monitor trend, intervene before failure</td></tr>
+<tr><td><span class="badge badge-amber">Partial</span></td><td>Mixed: moderate VIMS signal (40-65%) or high infant rate overlapping with some predictability</td><td>Dual approach: post-repair monitoring for the infant phase + condition monitoring for the degradation phase</td></tr>
+<tr><td><span class="badge badge-red">No</span></td><td>VIMS % < 50% AND/OR low total downtime impact AND/OR random occurrence pattern</td><td>Don't invest in prediction. Instead: rapid response, pre-positioned parts, enhanced PM inspections, or run-to-fail</td></tr>
+</table>
+
+<h4>Data quality notes</h4>
+<ul style="font-size:0.82rem; color:#94a3b8;">
+<li><strong>Spelling variants:</strong> The same failure appears under multiple descriptions (e.g., "TRANSMISSION SHIFTING PROBLEM", "TRANSMISI SHIFTING PROBLEM", "TRANS SHIFTING PROBLEM"). These are shown separately because the source data has no normalization. In a production system, these should be consolidated.</li>
+<li><strong>System classification:</strong> Component codes are mapped to systems via GOLD_COMPONENT_GROUP_MAPPING. 6.4% of events have unmapped codes and appear as "Unmapped."</li>
+<li><strong>Fan-out duplicates:</strong> A single physical breakdown event can generate multiple rows in AMT (one per work order). We did NOT deduplicate -- this means event counts may overstate the true number of physical failures by ~2x. The relative proportions (infant %, VIMS %, system distribution) are still valid for comparison.</li>
+<li><strong>VIMS is not system-specific:</strong> The VIMS alert count is for ALL alerts on that truck, not filtered to the specific system that failed. A hydraulic failure preceded by engine VIMS alerts would still show as "VIMS predictable." This overestimates true system-specific predictability.</li>
+<li><strong>The 4-hour filter:</strong> By excluding events < 4 hours, we're looking at significant breakdowns only. This removes ~58% of all breakdown records (quick fixes). If you remove this filter, the infant mortality % drops because many quick fixes are independent events.</li>
+</ul>
+
+</div>
+</details>
 
 <div id="rcm-patterns" style="display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-bottom:2rem;">
   <div class="rcm-card" onclick="showPattern('A')" style="cursor:pointer; background:#1e293b; border:2px solid #334155; border-radius:12px; padding:1.25rem; transition:all .2s;">
