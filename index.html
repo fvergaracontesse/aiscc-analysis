@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AISCC Breakdown Analysis</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body { margin:0; font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:#0f172a; color:#e2e8f0; }
+  .tab-btn { transition:all .15s; border-bottom:3px solid transparent; color:#64748b; }
+  .tab-btn.active { border-bottom-color:#3b82f6; color:#f8fafc; font-weight:600; }
+  .tab-btn:not(.active):hover { color:#94a3b8; border-bottom-color:#334155; }
+  .panels-host { display:grid; min-height:calc(100vh - 80px); }
+  .tab-panel { grid-column:1; grid-row:1; visibility:hidden; overflow-y:auto; padding:2rem; }
+  .tab-panel.active { visibility:visible; }
+  table { border-collapse:collapse; width:100%; margin:1rem 0; }
+  th { background:#1e3a5f; color:#e2e8f0; text-align:left; padding:10px 12px; font-size:0.8rem; font-weight:600; }
+  td { padding:8px 12px; border-bottom:1px solid #1e293b; font-size:0.82rem; color:#cbd5e1; }
+  tr:hover td { background:#1e293b; }
+  h2 { font-size:1.5rem; color:#f8fafc; margin:2rem 0 0.75rem; border-bottom:1px solid #1e3a5f; padding-bottom:0.5rem; }
+  h3 { font-size:1.1rem; color:#93c5fd; margin:1.5rem 0 0.5rem; }
+  h4 { font-size:0.95rem; color:#67e8f9; margin:1rem 0 0.4rem; }
+  p, li { font-size:0.88rem; line-height:1.7; color:#cbd5e1; }
+  .finding { background:#1e293b; border-left:3px solid #3b82f6; padding:0.75rem 1rem; margin:0.75rem 0; border-radius:0 6px 6px 0; font-size:0.85rem; }
+  .finding.critical { border-left-color:#ef4444; }
+  .finding.success { border-left-color:#22c55e; }
+  .finding.warn { border-left-color:#f59e0b; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:9999px; font-size:0.7rem; font-weight:600; margin-left:6px; }
+  .badge-red { background:#fecaca; color:#991b1b; }
+  .badge-green { background:#bbf7d0; color:#166534; }
+  .badge-amber { background:#fde68a; color:#92400e; }
+  .badge-blue { background:#bfdbfe; color:#1e40af; }
+  .box { background:#1e293b; border:1px solid #334155; border-radius:12px; padding:1.5rem; margin:1rem 0; }
+  .chart-card { background:#1e293b; border:1px solid #334155; border-radius:12px; padding:1.25rem; }
+  .chart-wrap { position:relative; height:300px; }
+  .content { max-width:1200px; margin:0 auto; }
+  code { background:#334155; padding:2px 6px; border-radius:4px; font-size:0.8rem; color:#67e8f9; }
+  .summary-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; margin:1.5rem 0; }
+  .summary-card { background:#1e293b; border:1px solid #334155; border-radius:10px; padding:1.25rem; text-align:center; }
+  .summary-card .number { font-size:2rem; font-weight:700; color:#f8fafc; }
+  .summary-card .label { font-size:0.78rem; color:#64748b; margin-top:4px; }
+  @media(max-width:768px) { .summary-grid { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="sticky top-0 z-50" style="background:#0f172a; border-bottom:1px solid #1e3a5f;">
+  <div class="max-w-screen-2xl mx-auto px-6 py-3 flex items-center justify-between">
+    <div>
+      <p class="text-base font-bold text-white">AISCC Breakdown Analysis</p>
+      <p class="text-xs text-slate-500">CAT 793 Fleet &bull; 158 Trucks &bull; April 2026</p>
+    </div>
+    <p class="text-xs text-slate-600">Prepared by Arpinine</p>
+  </div>
+  <nav class="max-w-screen-2xl mx-auto px-6 flex gap-6 -mb-px">
+    <button onclick="switchTab('strategy')" id="tab-strategy" class="tab-btn py-2.5 text-sm">Strategy Matrix</button>
+    <button onclick="switchTab('charts')" id="tab-charts" class="tab-btn py-2.5 text-sm">Data Charts</button>
+    <button onclick="switchTab('eda')" id="tab-eda" class="tab-btn py-2.5 text-sm">EDA Report</button>
+  </nav>
+</header>
+
+<div class="panels-host">
+
+<!-- ═══════════════ TAB 1: STRATEGY MATRIX ═══════════════ -->
+<div id="panel-strategy" class="tab-panel">
+<div class="content">
+
+<h2>Executive Summary</h2>
+
+<div class="summary-grid">
+  <div class="summary-card">
+    <div class="number">28,707</div>
+    <div class="label">Breakdown events (2024-2026)</div>
+  </div>
+  <div class="summary-card">
+    <div class="number">1.53M</div>
+    <div class="label">Total downtime hours</div>
+  </div>
+  <div class="summary-card">
+    <div class="number">4 days</div>
+    <div class="label">Median time between breakdowns</div>
+  </div>
+  <div class="summary-card">
+    <div class="number">53%</div>
+    <div class="label">Infant mortality (repair didn't hold)</div>
+  </div>
+  <div class="summary-card">
+    <div class="number">82%</div>
+    <div class="label">Of downtime from infant mortality</div>
+  </div>
+  <div class="summary-card">
+    <div class="number">68%</div>
+    <div class="label">Predictable by VIMS (7-day signal)</div>
+  </div>
+</div>
+
+<table>
+<tr><th>Dimension</th><th>Finding</th><th>Implication</th></tr>
+<tr><td>What's breaking</td><td>4 systems cause 69%: Engine (23%), Power Train (17%), Cab/Frame/Body (15%), Hydraulics (14%)</td><td>Focus on these 4 systems first</td></tr>
+<tr><td>What it costs</td><td>1,526,345 downtime hours. Repair costs: $44.9M recorded. Production loss depends on confirmed $/hr rate</td><td>Even 10-15% reduction = millions saved</td></tr>
+<tr><td>Can we predict it</td><td>~68% show VIMS warning 7 days before. ~22% completely blind. Catastrophic failures: 83% predictable</td><td>Realistic ceiling is ~70%. Don't promise 100%</td></tr>
+<tr><td>Current system</td><td>Health scores are inverted (higher = MORE likely to fail). ML model C-index 0.607 (barely above random)</td><td>Predictive layer needs complete rebuild</td></tr>
+<tr><td>Biggest surprise</td><td>53% of breakdowns are infant mortality (repair failed within 7 days). These cause 82% of all downtime</td><td>The problem is repair quality, not prediction</td></tr>
+<tr><td>First move</td><td>Post-repair 7-day monitoring + VIMS threshold rules. No ML needed. 2 weeks to implement</td><td>Addresses 82% of downtime with zero ML</td></tr>
+</table>
+
+<h2>The Four Failure Patterns</h2>
+
+<p>Every breakdown falls into one of four categories. Each has a different behavior and a different attack strategy.</p>
+
+<table>
+<tr><th>Pattern</th><th>Behavior</th><th>% of Events</th><th>% of Downtime</th><th>Strategy</th></tr>
+<tr><td><strong>Gradual Degradation</strong> <span class="badge badge-green">P-F Curve</span></td><td>Truck degrades over days/weeks. VIMS alerts escalate</td><td>~14%</td><td>Low</td><td>Monitor VIMS trend. Pull before failure</td></tr>
+<tr><td><strong>Sudden Failure</strong> <span class="badge badge-amber">Blind</span></td><td>No warning. Goes from normal to broken</td><td>~22%</td><td>Moderate</td><td>Can't predict. Minimize response time. Enhanced PM inspections</td></tr>
+<tr><td><strong>Infant Mortality</strong> <span class="badge badge-red">Critical</span></td><td>Repair failed. Same system re-breaks within 7 days</td><td><strong>53%</strong></td><td><strong>82%</strong></td><td>Post-repair monitoring. Fix repair quality. Don't redeploy if alerts return</td></tr>
+<tr><td><strong>Root Cause</strong> <span class="badge badge-blue">Eliminate</span></td><td>Chronic repeat. Design flaw, parts issue, or environmental</td><td>Subset</td><td>High per failure</td><td>Eliminate permanently. Engineering change or truck retirement</td></tr>
+</table>
+
+<div class="finding critical">
+<strong>Key Finding:</strong> Infant mortality accounts for 53% of events but 82% of ALL downtime hours (1,225,392 hours). 66-68% of Engine and Power Train repairs fail within 7 days. This is not a prediction problem -- it's a repair quality problem.
+</div>
+
+<h2>Infant Mortality Rate by System</h2>
+<table>
+<tr><th>System</th><th>Total Events</th><th>Infant Mortality (<=7d)</th><th>Rate</th><th>Downtime from Infant Failures</th></tr>
+<tr><td>Power Train</td><td>1,983</td><td>1,359</td><td><strong>68.5%</strong></td><td>272,289 hrs</td></tr>
+<tr><td>Engine</td><td>2,038</td><td>1,349</td><td><strong>66.2%</strong></td><td>229,477 hrs</td></tr>
+<tr><td>Hydraulics</td><td>1,610</td><td>994</td><td><strong>61.7%</strong></td><td>260,837 hrs</td></tr>
+<tr><td>Cab/Frame/Body</td><td>1,734</td><td>1,023</td><td><strong>59.0%</strong></td><td>303,165 hrs</td></tr>
+<tr><td>Electrical</td><td>299</td><td>124</td><td>41.5%</td><td>35,769 hrs</td></tr>
+</table>
+
+<h2>Top Root Cause Elimination Targets</h2>
+<table>
+<tr><th>Failure Mode</th><th>System</th><th>Events</th><th>Repeat Rate</th><th>Total Down Hours</th><th>Elimination Path</th></tr>
+<tr><td>Duo Cone Seal Final Drive LH Leak</td><td>Hydraulics</td><td>126+</td><td>100%</td><td>88,000+</td><td>Engineering review of seal design/spec</td></tr>
+<tr><td>Engine Hydraulic Lock (oil-coolant mix)</td><td>Engine</td><td>80+</td><td>100%</td><td>24,000+</td><td>Find coolant entry point. Redesign separator</td></tr>
+<tr><td>Brake Temp High + Hydraulic Flush</td><td>Power Train</td><td>96+</td><td>100%</td><td>56,000+</td><td>Root cause hydraulic contamination source</td></tr>
+<tr><td>HT094 Accident Cascade</td><td>All</td><td>139</td><td>100%</td><td>311,000</td><td>Data cleanup or truck retirement</td></tr>
+<tr><td>HT005 Chronic Failures</td><td>All</td><td>525</td><td>N/A</td><td>399,000+</td><td>Evaluate retirement vs major overhaul</td></tr>
+</table>
+
+<h2>Three-Box Strategy</h2>
+
+<div class="box">
+<h3>Box A: Quick Wins (This Month) <span class="badge badge-green">No ML Required</span></h3>
+<table>
+<tr><th>Action</th><th>What</th><th>Expected Capture</th><th>Effort</th></tr>
+<tr><td>Post-repair monitoring</td><td>After Engine/PT/Hydraulics repair: 7-day enhanced VIMS watch. If alerts return, don't redeploy</td><td>82% of downtime hours</td><td>2 weeks (process)</td></tr>
+<tr><td>VIMS 7-day threshold</td><td>Flag trucks with >500 alerts in trailing 7 days</td><td>~68% of breakdowns</td><td>1 week (software)</td></tr>
+<tr><td>Transmission-specific alert</td><td>VIMS transmission temp + shifting alerts</td><td>87.5% of transmission failures</td><td>3 days</td></tr>
+</table>
+</div>
+
+<div class="box">
+<h3>Box B: Data-Driven Optimization (Next Quarter) <span class="badge badge-blue">Tuned Model</span></h3>
+<table>
+<tr><th>Action</th><th>What</th><th>Expected Improvement</th><th>Effort</th></tr>
+<tr><td>Fix health scores</td><td>Re-derive weights from breakdown data. Invert scoring logic</td><td>Scores become directionally correct</td><td>2 weeks</td></tr>
+<tr><td>Train survival model</td><td>Cox PH with 35 features from VIMS + Maintenance + SOS</td><td>C-index > 0.70 (vs current 0.607)</td><td>1 month</td></tr>
+<tr><td>Address repeat failures</td><td>Investigate why 66-68% of repairs fail in 7 days</td><td>Reduce total event count at root</td><td>Ongoing</td></tr>
+</table>
+</div>
+
+<div class="box">
+<h3>Box Z: New Data Sources (Next Year) <span class="badge badge-amber">Hardware</span></h3>
+<table>
+<tr><th>Action</th><th>What</th><th>Expected Improvement</th><th>Effort</th></tr>
+<tr><td>Vibration monitoring</td><td>Sensors for bearing/structural failures</td><td>Catch A-frame failures (currently 54% blind)</td><td>6-12 months + hardware</td></tr>
+<tr><td>Digital inspection forms</td><td>Structured inspection data into model</td><td>Add human-observed signals</td><td>3 months</td></tr>
+</table>
+</div>
+
+<h2>Key Metric Explanations</h2>
+
+<h4>C-Index: 0.607 (Current Model)</h4>
+<p>Measures whether the model correctly ranks which truck will fail first. A C-index of 0.50 = coin flip (random). The current model at 0.607 gets the priority order right only 60.7% of the time -- wrong 4 out of 10. A maintenance planner using this would schedule the wrong truck first nearly half the time.</p>
+
+<h4>Health Score Discrimination: ~1 Point</h4>
+<p>Average score before breakdowns: 68.4. Average during normal operation: 69.5. On a 100-point scale, 1.1 points is noise -- you cannot distinguish a truck about to fail from a healthy one. Worse, component-level scores are <strong>inverted</strong>: trucks score 10-25 points HIGHER before breakdowns, likely because recent repairs temporarily boost scores.</p>
+
+<h4>Production Loss Rate</h4>
+<p>Dollar figures in this analysis use a <strong>placeholder of $5,000/hr</strong> of unplanned truck downtime. Industry benchmarks range $2,000-$15,000/hr for mining haul trucks. This should be replaced with Amman's actual cost per hour. All dollar figures scale linearly.</p>
+
+</div>
+</div>
+
+<!-- ═══════════════ TAB 2: DATA CHARTS ═══════════════ -->
+<div id="panel-charts" class="tab-panel">
+<div class="content">
+
+<h2>Data Visualizations</h2>
+<p style="color:#64748b; margin-bottom:1.5rem;">Source: AMT ShiftLog Events + AMMAN EDWH Snowflake &bull; 793-series fleet &bull; 2023-2026</p>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
+
+  <div class="chart-card">
+    <p style="font-size:0.9rem; font-weight:600; color:#f1f5f9; margin-bottom:0.5rem;">Breakdowns by Month (Apr 2023 - Apr 2026)</p>
+    <div class="chart-wrap"><canvas id="chart1"></canvas></div>
+    <p class="finding">Volume tripled from ~400/month in mid-2024 to ~1,967 in Dec 2025. Cause unexplained -- fleet size was stable.</p>
+  </div>
+
+  <div class="chart-card">
+    <p style="font-size:0.9rem; font-weight:600; color:#f1f5f9; margin-bottom:0.5rem;">Total Downtime Hours by System (Top 10, since Jan 2024)</p>
+    <div class="chart-wrap"><canvas id="chart2"></canvas></div>
+    <p class="finding">Cab/Frame/Body (354k hrs), Power Train (317k), Hydraulics (304k) account for >60% of all downtime.</p>
+  </div>
+
+  <div class="chart-card">
+    <p style="font-size:0.9rem; font-weight:600; color:#f1f5f9; margin-bottom:0.5rem;">Breakdown Severity Distribution</p>
+    <div class="chart-wrap"><canvas id="chart3"></canvas></div>
+    <p class="finding">65% are quick fixes (<4h). But 23% are Major or Catastrophic -- a significant tail dominating total downtime cost.</p>
+  </div>
+
+  <div class="chart-card">
+    <p style="font-size:0.9rem; font-weight:600; color:#f1f5f9; margin-bottom:0.5rem;">VIMS Alert Coverage by System (Predictable vs Blind)</p>
+    <div class="chart-wrap"><canvas id="chart4"></canvas></div>
+    <p class="finding">~68% of significant breakdowns had VIMS alerts in prior 7 days. ~32% arrived with zero warning.</p>
+  </div>
+
+  <div class="chart-card">
+    <p style="font-size:0.9rem; font-weight:600; color:#f1f5f9; margin-bottom:0.5rem;">Top 15 Trucks by Breakdown Count (since Jan 2024)</p>
+    <div class="chart-wrap"><canvas id="chart5"></canvas></div>
+    <p class="finding">15 trucks drive a disproportionate share. HT005 has 759h avg downtime per event -- candidate for retirement.</p>
+  </div>
+
+  <div class="chart-card">
+    <p style="font-size:0.9rem; font-weight:600; color:#f1f5f9; margin-bottom:0.5rem;">Failure Pattern Distribution (by downtime impact)</p>
+    <div class="chart-wrap"><canvas id="chart6b"></canvas></div>
+    <p class="finding critical">Infant mortality (53% of events) causes 82% of all downtime. Independent failures (27%) cause only 9%.</p>
+  </div>
+
+</div>
+</div>
+</div>
+
+<!-- ═══════════════ TAB 3: EDA REPORT ═══════════════ -->
+<div id="panel-eda" class="tab-panel">
+<div class="content">
+
+<h2>Exploratory Data Analysis: Key Findings</h2>
+<p style="color:#64748b;">34,300 breakdown events &bull; 158 CAT 793 trucks &bull; 38 months (Jan 2023 - Apr 2026)</p>
+
+<h3>Top 5 Findings</h3>
+<div class="finding critical"><strong>1. Health scores are inverted</strong> -- trucks score 10-25 points HIGHER before breakdowns. The system directs attention AWAY from at-risk trucks.</div>
+<div class="finding success"><strong>2. VIMS 7-day alert volume is the strongest predictor</strong> -- 4x higher before breakdowns vs baseline. A simple count threshold outperforms the current ML model.</div>
+<div class="finding warn"><strong>3. 40% of breakdowns have no VIMS precursor</strong> -- bimodal distribution. The ceiling for VIMS-based prediction is ~60-68%.</div>
+<div class="finding critical"><strong>4. 3.5x regime change in early 2025</strong> -- breakdowns tripled (400 to 1,400+/month). Fleet size unchanged. Cause unknown. Must be resolved before training any model.</div>
+<div class="finding warn"><strong>5. SOS oil analysis shows no predictive signal</strong> -- iron/copper PPM are identical before breakdowns vs fleet average. Sampling may be too infrequent.</div>
+
+<h3>Data Quality Assessment</h3>
+<table>
+<tr><th>Check</th><th>Result</th><th>Status</th></tr>
+<tr><td>Null rate: ACTUALDOWNTIME</td><td>0%</td><td><span class="badge badge-green">Clean</span></td></tr>
+<tr><td>Null rate: ACTUALDOWNHOURS</td><td>0.6%</td><td><span class="badge badge-green">Clean</span></td></tr>
+<tr><td>Null rate: COMPONENTCODE</td><td>0%</td><td><span class="badge badge-green">Clean</span></td></tr>
+<tr><td>Null rate: COST</td><td>58.4%</td><td><span class="badge badge-red">Unreliable</span></td></tr>
+<tr><td>Duplicate (truck, timestamp) groups</td><td>5,236 groups (19,350 rows)</td><td><span class="badge badge-amber">Fan-out</span></td></tr>
+<tr><td>Future dates</td><td>0</td><td><span class="badge badge-green">Clean</span></td></tr>
+<tr><td>Impossible downtime (>1 year)</td><td>5 rows</td><td><span class="badge badge-amber">Exclude</span></td></tr>
+<tr><td>Unmapped component codes</td><td>2,125 events (6.4%)</td><td><span class="badge badge-amber">Map</span></td></tr>
+<tr><td>Truck ID overlap (AMT vs VIMS)</td><td>146 vs 147 (1 truck difference)</td><td><span class="badge badge-green">Clean</span></td></tr>
+</table>
+
+<h3>VIMS Signal Analysis</h3>
+<table>
+<tr><th>Window</th><th>Avg Alerts (Pre-BD)</th><th>Avg Alerts (Baseline)</th><th>Multiplier</th><th>Signal Strength</th></tr>
+<tr><td>7 days before breakdown</td><td>1,078</td><td>263</td><td><strong>4.1x</strong></td><td><span class="badge badge-green">Strong</span></td></tr>
+<tr><td>48 hours before breakdown</td><td>Bimodal</td><td>N/A</td><td>N/A</td><td><span class="badge badge-amber">Moderate</span></td></tr>
+</table>
+
+<h4>48-Hour Alert Distribution Before Breakdowns</h4>
+<table>
+<tr><th>Alert Count (48h before)</th><th>% of Breakdowns</th><th>Interpretation</th></tr>
+<tr><td>0 alerts</td><td>40%</td><td>Completely blind -- no VIMS warning</td></tr>
+<tr><td>1-3 alerts</td><td>3%</td><td>Minimal signal</td></tr>
+<tr><td>4-10 alerts</td><td>5%</td><td>Moderate signal</td></tr>
+<tr><td>10+ alerts</td><td>52%</td><td>Strong signal -- predictable</td></tr>
+</table>
+<div class="finding warn"><strong>Two populations:</strong> 52% show heavy VIMS activity (predictable), 40% arrive silent (unpredictable by VIMS alone). This sets a hard ceiling on any VIMS-based prediction system.</div>
+
+<h3>SOS Oil Analysis</h3>
+<table>
+<tr><th>Metric</th><th>Pre-Breakdown</th><th>Fleet Average</th><th>Difference</th></tr>
+<tr><td>Iron PPM (engine)</td><td>13.7</td><td>14.5</td><td>None</td></tr>
+<tr><td>Copper PPM (engine)</td><td>3.2</td><td>3.6</td><td>None</td></tr>
+<tr><td>UC (Urgent Condition) flag</td><td>2.7%</td><td>0.1%</td><td>27x (but n=2)</td></tr>
+</table>
+<div class="finding">SOS metal concentrations show <strong>no predictive signal</strong>. Oil samples may be too infrequent (weekly/biweekly) to capture degradation curves before failure.</div>
+
+<h3>Health Score Validation</h3>
+<table>
+<tr><th>Component</th><th>Score BEFORE Breakdown</th><th>Score Normal Period</th><th>Direction</th></tr>
+<tr><td>Engine</td><td>66.5</td><td>55.3</td><td><span class="badge badge-red">INVERTED</span></td></tr>
+<tr><td>Transmission</td><td>82.4</td><td>58.7</td><td><span class="badge badge-red">INVERTED</span></td></tr>
+<tr><td>Hydraulics</td><td>80.6</td><td>57.8</td><td><span class="badge badge-red">INVERTED</span></td></tr>
+<tr><td>Drivetrain</td><td>76.2</td><td>56.3</td><td><span class="badge badge-red">INVERTED</span></td></tr>
+<tr><td>General Equipment</td><td>81.9</td><td>59.1</td><td><span class="badge badge-red">INVERTED</span></td></tr>
+</table>
+<div class="finding critical"><strong>All five component scores are HIGHER before breakdowns.</strong> A truck scoring 82 in transmission health is MORE likely to break down than one scoring 59. The scoring system measures post-repair recovery, not failure proximity.</div>
+
+<h3>Predictability by Severity</h3>
+<table>
+<tr><th>Severity</th><th>Total Events</th><th>Predictable (VIMS signal)</th><th>% Predictable</th></tr>
+<tr><td>Standard (4-24h)</td><td>1,748</td><td>1,179</td><td>67.4%</td></tr>
+<tr><td>Major (1-7 days)</td><td>591</td><td>420</td><td>71.1%</td></tr>
+<tr><td>Catastrophic (7+ days)</td><td>36</td><td>30</td><td><strong>83.3%</strong></td></tr>
+</table>
+<div class="finding success"><strong>Good news:</strong> The worst events (catastrophic, 7+ days downtime) are the most predictable at 83.3%. The failures that matter most give the most warning.</div>
+
+<h3>2025 Regime Change</h3>
+<table>
+<tr><th>Quarter</th><th>Active Trucks</th><th>Breakdowns</th><th>BD per Truck</th></tr>
+<tr><td>2024 Q1</td><td>141</td><td>2,334</td><td>16.6</td></tr>
+<tr><td>2024 Q2</td><td>146</td><td>1,822</td><td>12.5</td></tr>
+<tr><td>2024 Q3</td><td>139</td><td>1,214</td><td>8.7</td></tr>
+<tr><td>2024 Q4</td><td>133</td><td>1,215</td><td>9.1</td></tr>
+<tr><td>2025 Q1</td><td>139</td><td>2,718</td><td><strong>19.6</strong></td></tr>
+<tr><td>2025 Q2</td><td>144</td><td>3,933</td><td><strong>27.3</strong></td></tr>
+<tr><td>2025 Q3</td><td>145</td><td>4,378</td><td><strong>30.2</strong></td></tr>
+<tr><td>2025 Q4</td><td>146</td><td>4,956</td><td><strong>33.9</strong></td></tr>
+<tr><td>2026 Q1</td><td>146</td><td>5,120</td><td><strong>35.1</strong></td></tr>
+</table>
+<div class="finding critical"><strong>Fleet size stable (133-146 trucks) but breakdowns per truck jumped from ~9 to ~35.</strong> This 3.5x increase is unexplained. Could be: changed logging practices, new telemetry system, aging fleet, or operational changes. Must be resolved before training any model.</div>
+
+</div>
+</div>
+
+</div><!-- panels-host -->
+
+<script>
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+switchTab('strategy');
+
+// ── Chart defaults ──
+Chart.defaults.color = '#94a3b8';
+Chart.defaults.borderColor = '#1e3a5f';
+Chart.defaults.font.family = "'Segoe UI',system-ui,sans-serif";
+Chart.defaults.font.size = 11;
+const BLUE='#3b82f6',CYAN='#06b6d4',TEAL='#14b8a6',GREEN='#22c55e',AMBER='#f59e0b',ORANGE='#f97316',RED='#ef4444',PURPLE='#a855f7',PINK='#ec4899',SLATE='#64748b';
+function gOpts(){return{color:'#1e3a5f',drawBorder:false};}
+
+// Chart 1: Monthly
+(function(){
+const L=['Apr-23','May-23','Jun-23','Jul-23','Aug-23','Sep-23','Oct-23','Nov-23','Dec-23','Jan-24','Feb-24','Mar-24','Apr-24','May-24','Jun-24','Jul-24','Aug-24','Sep-24','Oct-24','Nov-24','Dec-24','Jan-25','Feb-25','Mar-25','Apr-25','May-25','Jun-25','Jul-25','Aug-25','Sep-25','Oct-25','Nov-25','Dec-25','Jan-26','Feb-26','Mar-26','Apr-26'];
+const D=[613,1072,865,615,458,484,354,444,665,778,871,685,751,651,420,486,429,299,386,442,387,449,663,1606,1280,1401,1252,1470,1407,1501,1475,1514,1967,1855,1488,1777,1017];
+const C=L.map(l=>l.includes('-23')?BLUE:l.includes('-24')?CYAN:l.includes('-25')?GREEN:ORANGE);
+new Chart(document.getElementById('chart1'),{type:'bar',data:{labels:L,datasets:[{data:D,backgroundColor:C,borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:gOpts(),ticks:{maxRotation:45,font:{size:8}}},y:{grid:gOpts(),ticks:{callback:v=>v.toLocaleString()}}}}});
+})();
+
+// Chart 2: System downtime
+(function(){
+const S=['Cab/Frame/Body','Power Train','Hydraulics','Engine','Unmapped','Electrical','Accessories','Others','Maintenance','Brakes'];
+const H=[353802,316816,304261,269026,108975,67889,37147,25797,15950,13442];
+const C=[BLUE,CYAN,TEAL,GREEN,SLATE,AMBER,ORANGE,PINK,PURPLE,RED];
+new Chart(document.getElementById('chart2'),{type:'bar',data:{labels:S,datasets:[{data:H,backgroundColor:C,borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:gOpts(),ticks:{callback:v=>(v/1000).toFixed(0)+'k'}},y:{grid:{display:false}}}}});
+})();
+
+// Chart 3: Severity
+(function(){
+new Chart(document.getElementById('chart3'),{type:'doughnut',data:{labels:['Quick (<4h)','Standard (4-24h)','Major (1-7d)','Catastrophic (7d+)'],datasets:[{data:[18695,3506,4378,2128],backgroundColor:[GREEN,AMBER,ORANGE,RED],borderColor:'#1e293b',borderWidth:3}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'bottom',labels:{padding:14,usePointStyle:true}}}}});
+})();
+
+// Chart 4: VIMS coverage
+(function(){
+const S=['Cab/Frame/Body','Engine','Power Train','Hydraulics','Unmapped','Electrical','Accessories','Others','Maintenance','Brakes'];
+const P=[533,528,487,438,285,153,123,95,77,70];
+const B=[246,242,201,196,98,86,64,45,34,33];
+new Chart(document.getElementById('chart4'),{type:'bar',data:{labels:S,datasets:[{label:'Predictable',data:P,backgroundColor:TEAL,stack:'s'},{label:'Blind',data:B,backgroundColor:'#ef444466',borderColor:RED,borderWidth:1,stack:'s'}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{usePointStyle:true,padding:14}}},scales:{x:{grid:gOpts(),stacked:true},y:{grid:{display:false},stacked:true}}}});
+})();
+
+// Chart 5: Top trucks
+(function(){
+const T=['HT129','HT118','HT117','HT051','HT013','HT005','HT122','HT116','HT123','HT125','HT063','HT124','HT028','HT069','HT115'];
+const C=[433,403,396,380,375,367,328,308,307,291,285,280,277,273,270];
+new Chart(document.getElementById('chart5'),{type:'bar',data:{labels:T,datasets:[{data:C,backgroundColor:C.map(c=>`rgba(59,130,246,${(0.4+0.6*c/433).toFixed(2)})`),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{grid:gOpts(),min:200}}}});
+})();
+
+// Chart 6b: Failure pattern distribution (replacement for health score histogram)
+(function(){
+new Chart(document.getElementById('chart6b'),{type:'bar',data:{labels:['Infant Mortality\n(<=7d)','Independent\n(>30d)','First Failure','Early Recurrence\n(8-30d)'],datasets:[{label:'Events',data:[5272,2709,1329,702],backgroundColor:[RED,TEAL,BLUE,AMBER],borderRadius:4,yAxisID:'y'},{label:'Down Hours',data:[1225392,138707,102814,33626],backgroundColor:['#ef444444','#14b8a644','#3b82f644','#f59e0b44'],borderColor:[RED,TEAL,BLUE,AMBER],borderWidth:2,type:'bar',yAxisID:'y2'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{usePointStyle:true,padding:14}}},scales:{y:{grid:gOpts(),position:'left',title:{display:true,text:'Events',color:'#64748b'}},y2:{grid:{display:false},position:'right',title:{display:true,text:'Down Hours',color:'#64748b'},ticks:{callback:v=>(v/1000).toFixed(0)+'k'}}}}});
+})();
+</script>
+</body>
+</html>
