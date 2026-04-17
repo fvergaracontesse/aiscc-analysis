@@ -71,7 +71,7 @@
 
 <h2>The Problem</h2>
 
-<p>We analyzed 28,707 breakdown events across 158 CAT 793 haul trucks over 28 months. This is what the data tells us.</p>
+<p>We analyzed breakdown events across the CAT 793 haul fleet (146-148 active trucks out of 158 registered). Data periods vary by analysis: full dataset spans Jan 2023 - Apr 2026 (~34,300 events). The primary analysis period is Jan 2024 - Apr 2026 (28,707 events, 28 months). The Failure Explorer uses June 2024+ for VIMS correlation (requires 6-month VIMS history).</p>
 
 <div class="summary-grid">
   <div class="summary-card">
@@ -96,9 +96,11 @@
   </div>
   <div class="summary-card">
     <div class="number">68%</div>
-    <div class="label">Predictable by VIMS telemetry</div>
+    <div class="label">Predictable by VIMS (7-day window)</div>
   </div>
 </div>
+
+<p style="color:#64748b; font-size:0.78rem; margin-top:-0.5rem; margin-bottom:1rem;">Data scope: 28,707 events from Jan 2024 - Apr 2026 (28 months). All metrics use breakdowns >= 4 hours downtime on CAT 793 trucks (HT fleet). Fleet has 158 registered trucks, 146-148 active in any given quarter. Source: AMT_DBO_SHIFTLOG_EVENTS_V where BREAKDOWN = TRUE.</p>
 
 <h2>What's Breaking</h2>
 
@@ -149,7 +151,7 @@
 
 <table>
 <tr><th>Component</th><th>Status</th><th>Issue</th></tr>
-<tr><td>Health Scores</td><td><span class="badge badge-red">Inverted</span></td><td>Trucks score 10-25 points HIGHER before breakdowns. The system directs attention away from at-risk trucks. Difference between pre-breakdown and normal: 1.1 points on a 100-point scale (effectively zero discrimination)</td></tr>
+<tr><td>Health Scores</td><td><span class="badge badge-red">Inverted</span></td><td><strong>Component-level scores</strong> (engine, transmission, etc.) are 10-25 points HIGHER before breakdowns -- inverted, likely because recent repairs boost scores. <strong>Overall aggregate score</strong> shows only 1.1-point difference (68.4 pre-breakdown vs 69.5 normal) -- effectively zero discrimination. Both are broken: components point the wrong way, aggregate can't distinguish at all</td></tr>
 <tr><td>TTD Model</td><td><span class="badge badge-red">Near-random</span></td><td>C-index 0.607 (0.50 = coin flip). Gets priority ranking wrong 4 out of 10 times. Uses only 1 of 8 data sources. Not marked production-ready</td></tr>
 <tr><td>Agentic Pipeline</td><td><span class="badge badge-amber">Premature</span></td><td>6 agents built to discover new features for a model that doesn't use the existing 723 features</td></tr>
 <tr><td>Data Infrastructure</td><td><span class="badge badge-green">Solid</span></td><td>8 adapters, 723 features, Snowflake pipeline, MLflow tracking. Infrastructure is ready -- needs proper model training</td></tr>
@@ -191,7 +193,7 @@
 <table>
 <tr><th>Action</th><th>What</th><th>RCM Pattern</th><th>Expected Improvement</th><th>Effort</th></tr>
 <tr><td>Fix health scores</td><td>Re-derive weights from breakdown data. Invert scoring logic</td><td>All patterns</td><td>Scores become directionally correct</td><td>2 weeks</td></tr>
-<tr><td>Train survival model</td><td>Cox PH with 35 features from VIMS + Maintenance + SOS</td><td>C -- Fatigue</td><td>C-index > 0.70 (vs current 0.607)</td><td>1 month</td></tr>
+<tr><td>Train survival model</td><td>Cox PH with 35 features from VIMS + Maintenance. <strong>Prerequisite:</strong> resolve the 2025 regime change (3.5x volume increase, cause unknown) before training -- model trained on mixed pre/post data will be unreliable. SOS showed no predictive signal in EDA -- include only if re-validated</td><td>C -- Fatigue</td><td>C-index > 0.70 (vs current 0.607). Target is aspirational -- no benchmark exists for this fleet</td><td>1-2 months (after regime change resolved)</td></tr>
 <tr><td>Component life tracking</td><td>Track hours/cycles on seals, bearings, filters against known wear-out limits</td><td>B -- Wear-out</td><td>Prevent 100%-repeat failures like Duo Cone Seal</td><td>1 month</td></tr>
 <tr><td>Repair quality audit</td><td>Investigate why 66-68% of repairs fail in 7 days. Parts quality? Procedures? Training?</td><td>F -- Infant Mortality</td><td>Reduce total event count at root</td><td>Ongoing</td></tr>
 </table>
@@ -433,7 +435,7 @@ If count > 0, the event is "VIMS predictable."<br>
 const failureModes = [
   {mode:"Bearing A Frame Broken",sys:"Power Train",events:21,trucks:12,avgH:76.3,totalH:1603,infant:58.8,vims:52.4,avgVims:1549,cat:0,pattern:"A",predict:"partial",strategy:"Phase 1 (infant): Post-repair monitoring + enhanced torque QC. Phase 2 (wear-out): Track bearing hours, schedule replacement before fatigue limit. Consider vibration sensors (Box Z).",why:"Shows both infant mortality (58.8%) AND progressive signal. Classic bathtub -- fails after repair, then stable, then wears out."},
   {mode:"Bearing A Frame Broken",sys:"Cab/Frame/Body",events:12,trucks:8,avgH:91.7,totalH:1101,infant:36.4,vims:50.0,avgVims:700,cat:1,pattern:"A",predict:"partial",strategy:"Structural inspection during PM. Vibration monitoring for early detection. 1 catastrophic event (>168h) -- high consequence.",why:"Lower infant rate than PT variant but has catastrophic events. Bathtub: some early failures, then wear-out."},
-  {mode:"Transmission Failure",sys:"Power Train",events:9,trucks:6,avgH:71.3,totalH:642,infant:44.4,vims:55.6,avgVims:2925,cat:2,pattern:"A",predict:"yes",strategy:"Very high VIMS signal when present (2,925 avg alerts). Use VIMS threshold + component hour tracking. 2 catastrophic events -- high priority.",why:"Bathtub with extreme VIMS signal in wear-out phase. Catastrophic severity justifies investment."},
+  {mode:"Transmission Failure",sys:"Power Train",events:9,trucks:6,avgH:71.3,totalH:642,infant:44.4,vims:55.6,avgVims:2925,cat:2,pattern:"A",predict:"partial",strategy:"VIMS only 55.6% (below 65% threshold for full prediction). However, when alerts ARE present, signal is extreme (2,925 avg). Use VIMS threshold + component hour tracking. 2 catastrophic events justify monitoring investment despite lower predictability.",why:"Bathtub pattern. VIMS below 65% threshold so cannot fully predict, but catastrophic severity (2 events >7 days) and extreme signal strength when present justify partial monitoring. Dual approach: post-repair QC + VIMS watch."},
   {mode:"Transmission Shifting Problem",sys:"Power Train",events:23,trucks:15,avgH:34.5,totalH:794,infant:43.5,vims:91.3,avgVims:946,cat:0,pattern:"C",predict:"yes",strategy:"VIMS threshold rule: transmission temp + shift quality alerts. 91.3% predictable -- strongest CBM candidate in fleet. Deploy immediately (Box A).",why:"Textbook P-F curve. Gradual degradation visible in VIMS days before failure. Moderate infant rate (43.5%) suggests some repair quality issues too."},
   {mode:"Trans Shifting Problem",sys:"Power Train",events:10,trucks:7,avgH:35.3,totalH:353,infant:44.4,vims:90.0,avgVims:503,cat:0,pattern:"C",predict:"yes",strategy:"Same as Transmission Shifting Problem (spelling variant). Consolidate in data pipeline.",why:"Duplicate of above with different spelling. Same strong VIMS signal."},
   {mode:"Transmisi Shifting Problem",sys:"Power Train",events:13,trucks:7,avgH:34.4,totalH:447,infant:63.6,vims:69.2,avgVims:148,cat:0,pattern:"F",predict:"yes",strategy:"63.6% infant mortality + 69% VIMS signal. Dual attack: post-repair monitoring AND VIMS threshold. Spelling variant -- consolidate.",why:"Higher infant rate than other spelling variants suggests specific trucks/crews with repair quality issues."},
@@ -462,7 +464,7 @@ const failureModes = [
   {mode:"Dump Body Broken",sys:"Cab/Frame/Body",events:6,trucks:4,avgH:49.7,totalH:298,infant:50.0,vims:66.7,avgVims:961,cat:0,pattern:"A",predict:"partial",strategy:"50% infant + 66.7% VIMS. High severity. Post-repair structural inspection + VIMS body position sensors.",why:"Bathtub: half fail after repair (infant), others show gradual VIMS signal (wear/fatigue)."},
   {mode:"Repair Dump Body",sys:"Cab/Frame/Body",events:6,trucks:5,avgH:41.2,totalH:247,infant:33.3,vims:50.0,avgVims:115,cat:0,pattern:"E",predict:"no",strategy:"50% VIMS, moderate severity. Limited signal strength. Enhanced post-repair inspection.",why:"Borderline pattern. Weak signal. Focus on repair quality."},
   {mode:"Hydraulic Oil Leaking",sys:"Power Train",events:7,trucks:6,avgH:27.8,totalH:195,infant:14.3,vims:85.7,avgVims:613,cat:0,pattern:"C",predict:"yes",strategy:"85.7% VIMS detectable + low infant rate (14.3%). Excellent CBM candidate. Monitor hydraulic pressure trend.",why:"Repairs hold well. Genuine degradation pattern. Classic P-F curve."},
-  {mode:"Hydraulic Oil Leak",sys:"Power Train",events:11,trucks:7,avgH:22.3,totalH:245,infant:37.5,vims:63.6,avgVims:433,cat:0,pattern:"C",predict:"yes",strategy:"63.6% VIMS. Moderate infant (37.5%). Monitor + post-repair pressure test.",why:"Mix of degradation and repair quality. Address both."},
+  {mode:"Hydraulic Oil Leak",sys:"Power Train",events:11,trucks:7,avgH:22.3,totalH:245,infant:37.5,vims:63.6,avgVims:433,cat:0,pattern:"A",predict:"partial",strategy:"VIMS 63.6% (below 65% threshold for full CBM). Infant 37.5% in moderate range. Dual approach: post-repair pressure test for infant phase + VIMS hydraulic pressure monitoring for degradation phase.",why:"Sits on the boundary: VIMS 63.6% just below C threshold (65%), infant 37.5% in the A range (35-60%). Shows both repair-quality and degradation characteristics. Classified as Bathtub (A) with partial predictability."},
   {mode:"Main Drive Shaft Vibration",sys:"Power Train",events:7,trucks:5,avgH:12.9,totalH:90,infant:33.3,vims:85.7,avgVims:267,cat:0,pattern:"C",predict:"yes",strategy:"85.7% VIMS detectable. Low severity. Condition monitoring via vibration signal in VIMS. Early detection feasible.",why:"Strong signal, manageable severity. Good CBM candidate."},
   {mode:"Transmisi Oil Leaking",sys:"Power Train",events:7,trucks:5,avgH:29.7,totalH:208,infant:33.3,vims:100.0,avgVims:57,cat:0,pattern:"C",predict:"yes",strategy:"100% VIMS detectable (though low alert count). Oil leak progression visible. Monitor transmission oil level/pressure.",why:"Always detectable. Spelling variant -- consolidate."},
   {mode:"Fuel Tank Leak",sys:"Engine",events:10,trucks:9,avgH:9.2,totalH:92,infant:12.5,vims:70.0,avgVims:471,cat:0,pattern:"C",predict:"yes",strategy:"70% VIMS detectable. Very low infant (12.5%). Low severity. Condition monitoring. PM fuel system inspection.",why:"Repairs hold. Gradual degradation detectable. Low priority but easy to monitor."},
@@ -477,7 +479,7 @@ const failureModes = [
   {mode:"Bearing A Frame Broken",sys:"Hydraulics",events:11,trucks:7,avgH:69.0,totalH:759,infant:40.0,vims:45.5,avgVims:1294,cat:0,pattern:"A",predict:"partial",strategy:"Bathtub: 40% infant + moderate VIMS (45.5%) but very high alert count when present (1,294). Post-repair inspection + vibration monitoring for wear-out phase.",why:"Structural failure with both repair-quality and wear-out characteristics."},
   {mode:"Transmission Problem",sys:"Power Train",events:7,trucks:5,avgH:56.8,totalH:398,infant:40.0,vims:57.1,avgVims:591,cat:0,pattern:"A",predict:"partial",strategy:"40% infant + 57% VIMS. Moderate on both axes. Post-repair validation + VIMS transmission monitoring.",why:"Shows both patterns weakly. Bathtub with moderate signal."},
   {mode:"Engine Coolant Level Low",sys:"Engine",events:5,trucks:5,avgH:10.5,totalH:53,infant:20.0,vims:80.0,avgVims:141,cat:0,pattern:"C",predict:"yes",strategy:"80% VIMS. Coolant level sensor detects drop before engine damage. Simple threshold alert.",why:"Clear gradual signal. Easy to detect."},
-  {mode:"Air Conditioner Hot",sys:"Cab/Frame/Body",events:5,trucks:3,avgH:13.3,totalH:66,infant:40.0,vims:100.0,avgVims:161,cat:0,pattern:"D",predict:"no",strategy:"100% VIMS but low severity and fleet-limited (3 trucks). AC performance degrades after overhaul. Accept steady-state rate.",why:"Post-repair break-in on specific trucks. Settles to constant rate."}
+  {mode:"Air Conditioner Hot",sys:"Cab/Frame/Body",events:5,trucks:3,avgH:13.3,totalH:66,infant:40.0,vims:100.0,avgVims:161,cat:0,pattern:"C",predict:"no",strategy:"100% VIMS detectable but only 5 events on 3 trucks with low severity (13.3h avg, 66h total). Technically predictable by VIMS, but total downtime impact is too low to justify dedicated monitoring. Run-to-fail.",why:"Meets Pattern C criteria (VIMS 100% >= 65%, infant 40% < 50%) but deprioritized due to minimal fleet impact (66 total hours). Prediction is possible but not worth the investment."}
 ];
 
 function showPattern(p) {
@@ -544,7 +546,9 @@ function showDetail(row) {
 
   // Predict logic explanation
   let predictLogic = '';
-  if(f.predict==='yes') {
+  if(f.predict==='yes' && f.pattern==='F') {
+    predictLogic = 'Despite high Infant Mortality ('+f.infant+'%), VIMS Predictable ('+f.vims+'%) >= 65% means we CAN detect re-failures. Pattern F predict=yes means: use post-repair VIMS monitoring to catch infant failures before they escalate. The signal exists -- the repair quality is the root cause to fix.';
+  } else if(f.predict==='yes') {
     predictLogic = 'VIMS Predictable ('+f.vims+'%) >= 65% AND Infant Mortality ('+f.infant+'%) < 50%. Strong signal + repairs hold = condition monitoring works.';
   } else if(f.predict==='partial') {
     predictLogic = 'Mixed metrics: VIMS ('+f.vims+'%) and Infant ('+f.infant+'%) both in moderate range. Needs dual approach: post-repair monitoring for infant phase + VIMS monitoring for degradation phase.';
@@ -668,7 +672,7 @@ function showDetail(row) {
   <div class="chart-card">
     <p style="font-size:0.9rem; font-weight:600; color:#f1f5f9; margin-bottom:0.5rem;">VIMS Alert Coverage by System (Predictable vs Blind)</p>
     <div class="chart-wrap"><canvas id="chart4"></canvas></div>
-    <p class="finding">~68% of significant breakdowns had VIMS alerts in prior 7 days. ~32% arrived with zero warning.</p>
+    <p class="finding">~68% of significant breakdowns (>=4h) had VIMS alerts in the prior 7 days. ~32% had zero VIMS warning in 7 days. Note: in the tighter 48-hour window, 40% had zero alerts -- the blind rate increases as the window narrows.</p>
   </div>
 
   <div class="chart-card">
@@ -692,7 +696,7 @@ function showDetail(row) {
 <div class="content">
 
 <h2>Exploratory Data Analysis: Key Findings</h2>
-<p style="color:#64748b;">34,300 breakdown events &bull; 158 CAT 793 trucks &bull; 38 months (Jan 2023 - Apr 2026)</p>
+<p style="color:#64748b;">~34,300 breakdown events &bull; 146-148 active CAT 793 trucks (158 registered) &bull; 40 months (Jan 2023 - Apr 2026). Primary analysis uses Jan 2024+ (28,707 events, 28 months). VIMS correlation uses June 2024+ (22 months)</p>
 
 <h3>Top 5 Findings</h3>
 <div class="finding critical"><strong>1. Health scores are inverted</strong> -- trucks score 10-25 points HIGHER before breakdowns. The system directs attention AWAY from at-risk trucks.</div>
