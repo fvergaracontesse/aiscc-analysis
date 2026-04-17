@@ -92,12 +92,12 @@
 
 <div class="summary-grid">
   <div class="summary-card">
-    <div class="number audit-num" onclick="openAudit('total_events')">28,707</div>
-    <div class="label">Breakdown events (2024-2026) <span style="font-size:0.65rem; color:#3b82f6;">click to audit</span></div>
+    <div class="number audit-num" onclick="openAudit('total_events')">22,184</div>
+    <div class="label">Physical breakdowns (deduplicated, 2024-2026) <span style="font-size:0.65rem; color:#3b82f6;">click to audit</span></div>
   </div>
   <div class="summary-card">
-    <div class="number audit-num" onclick="openAudit('downtime_1_53m')">1.53M</div>
-    <div class="label">Total downtime hours <span style="font-size:0.65rem; color:#3b82f6;">click to audit</span></div>
+    <div class="number audit-num" onclick="openAudit('downtime_1_53m')">315K</div>
+    <div class="label">Total downtime hours (deduplicated) <span style="font-size:0.65rem; color:#3b82f6;">click to audit</span></div>
   </div>
   <div class="summary-card">
     <div class="number audit-num" onclick="openAudit('median_4d')">4 days</div>
@@ -122,13 +122,14 @@
 <h2>What's Breaking</h2>
 
 <table>
-<tr><th>System</th><th>% of Breakdowns</th><th>Total Down Hours</th><th>Repair Costs</th><th>Infant Mortality Rate</th></tr>
-<tr><td><strong>Engine</strong></td><td>22.9%</td><td>269,026</td><td>$10.7M</td><td>66.2%</td></tr>
-<tr><td><strong>Power Train</strong></td><td>17.1%</td><td>316,816</td><td>$9.5M</td><td>68.5%</td></tr>
-<tr><td><strong>Cab/Frame/Body</strong></td><td>15.1%</td><td>353,802</td><td>$18.3M</td><td>59.0%</td></tr>
-<tr><td><strong>Hydraulics</strong></td><td>14.0%</td><td>304,261</td><td>$4.2M</td><td>61.7%</td></tr>
-<tr><td>Other 9 systems</td><td>30.9%</td><td>282,440</td><td>$2.2M</td><td>31-54%</td></tr>
+<tr><th>System</th><th>Events (deduped)</th><th>% of Breakdowns</th><th>Total Down Hours</th><th>Repair Costs</th><th>7-Day Recurrence</th></tr>
+<tr><td><strong>Engine</strong></td><td>4,792</td><td>21.6%</td><td>42,585</td><td>$8.3M</td><td>42.1%</td></tr>
+<tr><td><strong>Power Train</strong></td><td>3,427</td><td>15.4%</td><td>48,531</td><td>$6.9M</td><td>35.4%</td></tr>
+<tr><td><strong>Cab/Frame/Body</strong></td><td>3,054</td><td>13.8%</td><td>52,944</td><td>$11.4M</td><td>28.0%</td></tr>
+<tr><td><strong>Hydraulics</strong></td><td>2,860</td><td>12.9%</td><td>45,284</td><td>$2.8M</td><td>26.6%</td></tr>
+<tr><td>Other 9 systems</td><td>8,051</td><td>36.3%</td><td>125,289</td><td>$2.0M</td><td>7-25%</td></tr>
 </table>
+<p style="color:#64748b; font-size:0.78rem;">All numbers deduplicated: GROUP BY (truck, system, timestamp). "Events" = physical breakdowns, not work orders. Data: Jan 2024 - Apr 2026.</p>
 
 <div class="finding critical">
 <strong>Key finding:</strong> After deduplicating work orders into physical breakdowns, 22.5% of events recur within 7 days on the same truck (accounting for 20.2% of downtime). The dominant pattern is independent failures (38.3% of events, >30 days apart). The majority of classified failure modes (32 of 50) are Pattern C (gradual degradation detectable by VIMS) -- the strongest use case for condition-based monitoring.
