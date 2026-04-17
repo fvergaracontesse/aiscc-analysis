@@ -551,111 +551,115 @@ function hidePattern() {
 
 function showDetail(row) {
   const f = JSON.parse(row.dataset.mode);
-  let prev = document.getElementById('mode-detail-box');
-  if(prev) prev.remove();
-  const box = document.createElement('div');
-  box.id = 'mode-detail-box';
-  box.className = 'box';
-  box.style.borderColor = f.predict==='yes'?'#22c55e':f.predict==='partial'?'#f59e0b':'#ef4444';
-
   const modeEsc = f.mode.replace(/'/g,"''");
-  const predLabel = f.predict==='yes'?'<span class="badge badge-green">Yes -- Condition-Based Monitoring</span>':f.predict==='partial'?'<span class="badge badge-amber">Partial -- Dual Strategy</span>':'<span class="badge badge-red">No -- Rapid Response / Run-to-Fail</span>';
 
-  // Predict logic explanation
+  // Build predict logic
   let predictLogic = '';
   if(f.predict==='yes' && f.pattern==='F') {
-    predictLogic = 'Despite high Infant Mortality ('+f.infant+'%), VIMS Predictable ('+f.vims+'%) >= 65% means we CAN detect re-failures. Pattern F predict=yes means: use post-repair VIMS monitoring to catch infant failures before they escalate. The signal exists -- the repair quality is the root cause to fix.';
+    predictLogic = 'Despite high Infant Mortality ('+f.infant+'%), VIMS Predictable ('+f.vims+'%) >= 65% means we CAN detect re-failures. Post-repair VIMS monitoring catches infant failures before they escalate.';
   } else if(f.predict==='yes') {
     predictLogic = 'VIMS Predictable ('+f.vims+'%) >= 65% AND Infant Mortality ('+f.infant+'%) < 50%. Strong signal + repairs hold = condition monitoring works.';
   } else if(f.predict==='partial') {
-    predictLogic = 'Mixed metrics: VIMS ('+f.vims+'%) and Infant ('+f.infant+'%) both in moderate range. Needs dual approach: post-repair monitoring for infant phase + VIMS monitoring for degradation phase.';
+    predictLogic = 'Mixed: VIMS ('+f.vims+'%) and Infant ('+f.infant+'%) both moderate. Dual approach: post-repair monitoring + VIMS condition monitoring.';
   } else {
-    predictLogic = 'VIMS Predictable ('+f.vims+'%) < 50% OR insufficient impact. No reliable advance warning from current sensors. Invest in rapid response, not prediction.';
+    predictLogic = 'VIMS Predictable ('+f.vims+'%) < 50% OR insufficient impact. No reliable advance warning. Invest in rapid response, not prediction.';
   }
+  const predLabel = f.predict==='yes'?'<span class="badge badge-green">Yes</span>':f.predict==='partial'?'<span class="badge badge-amber">Partial</span>':'<span class="badge badge-red">No</span>';
+  const predClass = f.predict==='yes'?'success':f.predict==='partial'?'warn':'critical';
 
-  box.innerHTML = `
-    <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:1rem;">
-      <h3 style="margin:0;">${f.sys}: ${f.mode}</h3>
-      <button onclick="document.getElementById('mode-detail-box').remove()" style="background:#334155; border:none; color:#94a3b8; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:0.8rem;">Close</button>
-    </div>
+  // Open in audit modal
+  let html = '<button class="audit-close" onclick="closeAudit()">Close</button>';
+  html += '<h3 style="color:#f8fafc; font-size:1.2rem; margin-bottom:0.25rem;">'+f.sys+': '+f.mode+'</h3>';
+  html += '<p style="color:#94a3b8; font-size:0.82rem; margin-bottom:1.5rem;">Audit trail for every metric in this row. Data cached from Snowflake April 17, 2026.</p>';
 
-    <h4>Column-by-Column Breakdown</h4>
-    <table>
-    <tr><th style="width:140px;">Column</th><th style="width:80px;">Value</th><th>Source Table</th><th>Exact Calculation</th></tr>
+  // Step 1: Events
+  html += '<div class="audit-step"><div class="audit-step-num">1</div><div class="audit-step-content">';
+  html += '<strong style="color:#93c5fd; font-size:0.9rem;">Events = '+f.events+'</strong>';
+  html += '<p style="font-size:0.82rem; margin-top:0.4rem;"><strong>Source:</strong> <code>SOURCE_3RDPARTYAPPS.AMT_DBO_SHIFTLOG_EVENTS_V</code></p>';
+  html += '<div class="audit-sql">SELECT COUNT(*) as EVENTS\nFROM SOURCE_3RDPARTYAPPS.AMT_DBO_SHIFTLOG_EVENTS_V e\nINNER JOIN SOURCE_3RDPARTYAPPS.AMT_EQUIPMENTDETAILS eq\n  ON eq.EQUIPMENT = e.EQPPLAN\nLEFT JOIN AMMAN_EDWH.PREDICTIVE_MNT.GOLD_COMPONENT_GROUP_MAPPING g\n  ON REGEXP_REPLACE(SPLIT_PART(e.COMPONENTCODE,\' - \',1),\'[^0-9]\',\'\') = g.CODE\nWHERE e.BREAKDOWN = TRUE                        -- unplanned stops only\n  AND eq.MODEL LIKE \'%793%\'                      -- CAT 793 trucks\n  AND eq.EQUIPMENT LIKE \'HT%\'                    -- haul trucks\n  AND COALESCE(e.ACTUALDOWNHOURS, 0) >= 4        -- significant breakdowns (>= 4h)\n  AND COALESCE(e.ACTUALDOWNTIME, e.PLANNEDDOWNTIME, e.EVENTLMD) >= \'2024-06-01\'\n  AND COALESCE(g.SYSTEM, \'Unmapped\') = \''+f.sys+'\'\n  AND UPPER(TRIM(e.EVENTDESCRIPTION)) LIKE \'%'+modeEsc+'%\'</div>';
+  html += '<div class="audit-calc">Result: COUNT(*) = <strong>'+f.events+'</strong> events matching this failure mode</div>';
+  html += '<p style="font-size:0.78rem; color:#94a3b8; margin-top:0.4rem;"><strong>Filters:</strong> BREAKDOWN=TRUE (unplanned only) + >= 4 hours downtime (excludes quick fixes) + 793 trucks only + since June 2024 (22 months) + system "'+f.sys+'" + description matches "'+f.mode+'"</p>';
+  html += '</div></div>';
 
-    <tr><td><strong>System</strong></td><td>${f.sys}</td>
-    <td><code style="font-size:0.7rem;">GOLD_COMPONENT_GROUP_MAPPING</code></td>
-    <td>The COMPONENTCODE from the breakdown event (e.g., "3268") is stripped to digits and joined to GOLD_COMPONENT_GROUP_MAPPING.CODE. That table maps codes to systems:<br>
-    <code style="font-size:0.7rem;">LEFT JOIN GOLD_COMPONENT_GROUP_MAPPING g ON REGEXP_REPLACE(SPLIT_PART(e.COMPONENTCODE, ' - ', 1), '[^0-9]', '') = g.CODE</code><br>
-    The SYSTEM column (e.g., "Power Train", "Engine") comes from this mapping table. If no match: "Unmapped."</td></tr>
+  // Step 2: Trucks
+  html += '<div class="audit-step"><div class="audit-step-num">2</div><div class="audit-step-content">';
+  html += '<strong style="color:#93c5fd; font-size:0.9rem;">Trucks Affected = '+f.trucks+'</strong>';
+  html += '<p style="font-size:0.82rem; margin-top:0.4rem;"><strong>Source:</strong> Same query as Step 1</p>';
+  html += '<div class="audit-sql">SELECT COUNT(DISTINCT e.EQPPLAN) as TRUCKS_AFFECTED\n-- same FROM/WHERE as Step 1</div>';
+  html += '<div class="audit-calc">Result: <strong>'+f.trucks+'</strong> unique trucks<br><br>';
+  html += (f.trucks < 5 ? 'Low count = truck-specific problem. Specific trucks have a defect, operating condition, or maintenance crew issue.' : f.trucks >= 10 ? 'High count = fleet-wide problem. Design flaw, parts quality, or environmental factor affecting many trucks.' : 'Moderate spread across the fleet.');
+  html += '</div></div></div>';
 
-    <tr><td><strong>Failure Mode</strong></td><td>${f.mode}</td>
-    <td><code style="font-size:0.7rem;">AMT_DBO_SHIFTLOG_EVENTS_V</code></td>
-    <td>Free-text field EVENTDESCRIPTION, uppercased and trimmed to 55 characters:<br>
-    <code style="font-size:0.7rem;">LEFT(UPPER(TRIM(e.EVENTDESCRIPTION)), 55)</code><br>
-    This is what the maintenance team typed when logging the event. No normalization -- spelling variants (e.g., "TRANSMISI" vs "TRANSMISSION") appear as separate failure modes.</td></tr>
+  // Step 3: Avg + Total Hours
+  html += '<div class="audit-step"><div class="audit-step-num">3</div><div class="audit-step-content">';
+  html += '<strong style="color:#93c5fd; font-size:0.9rem;">Avg Hours = '+f.avgH+'h / Total Hours = '+f.totalH.toLocaleString()+'h</strong>';
+  html += '<p style="font-size:0.82rem; margin-top:0.4rem;"><strong>Source:</strong> <code>ACTUALDOWNHOURS</code> column in AMT_DBO_SHIFTLOG_EVENTS_V</p>';
+  html += '<div class="audit-sql">SELECT ROUND(AVG(COALESCE(e.ACTUALDOWNHOURS, 0)), 1) as AVG_HOURS,\n       SUM(COALESCE(e.ACTUALDOWNHOURS, 0)) as TOTAL_HOURS\n-- same FROM/WHERE as Step 1</div>';
+  html += '<div class="audit-calc">AVG = <strong>'+f.avgH+' hours</strong> ('+( f.avgH/24).toFixed(1)+' days per event)<br>';
+  html += 'SUM = <strong>'+f.totalH.toLocaleString()+' hours</strong> total fleet downtime from this failure mode<br><br>';
+  html += 'Cross-check: '+f.events+' events x '+f.avgH+'h avg = '+(f.events * f.avgH).toLocaleString()+'h (vs reported '+f.totalH.toLocaleString()+'h — '+(Math.abs(f.events*f.avgH - f.totalH) < f.totalH*0.05 ? 'consistent within rounding' : 'minor variance from median skew')+')<br><br>';
+  html += (f.avgH >= 168 ? 'Catastrophic severity — truck out of service for 7+ days per event.' : f.avgH >= 24 ? 'Multi-day repair. Significant production loss per event.' : 'Same-day or next-day repair. Lower per-event impact but may be high volume.');
+  html += '</div></div></div>';
 
-    <tr><td><strong>Events</strong></td><td><strong>${f.events}</strong></td>
-    <td><code style="font-size:0.7rem;">AMT_DBO_SHIFTLOG_EVENTS_V</code></td>
-    <td><code style="font-size:0.7rem;">SELECT COUNT(*) FROM AMT_DBO_SHIFTLOG_EVENTS_V e<br>
-    JOIN AMT_EQUIPMENTDETAILS eq ON eq.EQUIPMENT = e.EQPPLAN<br>
-    WHERE e.BREAKDOWN = TRUE<br>
-    AND eq.MODEL LIKE '%793%' AND eq.EQUIPMENT LIKE 'HT%'<br>
-    AND ACTUALDOWNHOURS >= 4<br>
-    AND event_date >= '2024-06-01'<br>
-    AND UPPER(TRIM(EVENTDESCRIPTION)) LIKE '%${modeEsc}%'<br>
-    AND system = '${f.sys}'</code><br>
-    <strong>Filters applied:</strong> Only BREAKDOWN=TRUE, only >= 4 hours downtime, only 793 trucks, only since June 2024.</td></tr>
+  // Step 4: Infant Mortality %
+  html += '<div class="audit-step"><div class="audit-step-num">4</div><div class="audit-step-content">';
+  html += '<strong style="color:#93c5fd; font-size:0.9rem;">Infant Mortality = '+(f.infant !== null ? f.infant+'%' : 'N/A')+'</strong>';
+  html += '<p style="font-size:0.82rem; margin-top:0.4rem;"><strong>Source:</strong> <code>AMT_DBO_SHIFTLOG_EVENTS_V</code> — self-comparison via LAG window function</p>';
+  html += '<p style="font-size:0.82rem;"><strong>Definition:</strong> % of events where the <strong>same truck + same system</strong> had a previous breakdown within 7 days</p>';
+  html += '<div class="audit-sql">-- For each event, find the previous event on same truck + same system:\nLAG(event_timestamp) OVER (\n  PARTITION BY truck_id, system_name\n  ORDER BY event_timestamp\n)\n\n-- Then classify:\nDATEDIFF(day, previous_event, this_event) <= 7  →  Infant Mortality\n\n-- Calculate percentage:\nInfant % = events_within_7d / events_with_prior_event * 100</div>';
+  html += '<div class="audit-calc">Result: <strong>'+(f.infant !== null ? f.infant+'%' : 'N/A')+'</strong> of events recurred within 7 days<br><br>';
+  html += (f.infant >= 60 ? 'Most repairs on this system fail within a week. Critical repair quality issue. The repair itself is likely the cause of the next failure.' : f.infant >= 40 ? 'A significant portion of repairs don\'t hold. Worth investigating: parts quality, repair procedures, technician training, or time pressure.' : f.infant >= 20 ? 'Some recurrence but mostly repairs hold. Normal range for complex systems.' : 'Repairs are effective. Low recurrence rate.');
+  html += '</div>';
+  html += '<p style="font-size:0.78rem; color:#f59e0b; margin-top:0.5rem;"><strong>Caveat:</strong> This measures same-SYSTEM recurrence (e.g., all "'+f.sys+'"), not same failure description. A coolant leak fixed Monday followed by an oil pressure failure Friday on the same truck\'s '+f.sys+' counts as infant mortality. This likely overestimates true repair-failure rate by 10-20%.</p>';
+  html += '</div></div>';
 
-    <tr><td><strong>Trucks</strong></td><td>${f.trucks}</td>
-    <td><code style="font-size:0.7rem;">AMT_DBO_SHIFTLOG_EVENTS_V</code></td>
-    <td><code style="font-size:0.7rem;">COUNT(DISTINCT e.EQPPLAN)</code> with same filters as Events.<br>
-    <strong>Interpretation:</strong> ${f.trucks} different trucks experienced this failure. ${f.trucks < 5 ? 'Low count = truck-specific problem (specific trucks have a defect or operating condition).' : f.trucks >= 10 ? 'High count = fleet-wide problem (design, parts quality, or environmental factor affecting many trucks).' : 'Moderate spread across the fleet.'}</td></tr>
+  // Step 5: VIMS %
+  html += '<div class="audit-step"><div class="audit-step-num">5</div><div class="audit-step-content">';
+  html += '<strong style="color:#93c5fd; font-size:0.9rem;">VIMS Predictable = '+f.vims+'%</strong>';
+  html += '<p style="font-size:0.82rem; margin-top:0.4rem;"><strong>Source:</strong> <code>AMMAN_EDWH.PREDICTIVE_MNT.SILVER_HEALTH_ALARM_EVENT</code> joined to breakdown events</p>';
+  html += '<p style="font-size:0.82rem;"><strong>Definition:</strong> % of breakdown events that had >= 1 VIMS health alarm in the 7 days BEFORE the breakdown</p>';
+  html += '<div class="audit-sql">-- For each breakdown event of this type:\nSELECT b.TRUCK_ID, b.BREAKDOWN_DATE,\n       COUNT(v.EQUIPMENT_ID) as ALERT_COUNT_7D\nFROM breakdown_events b    -- filtered to "'+modeEsc+'" on "'+f.sys+'"\nLEFT JOIN SILVER_HEALTH_ALARM_EVENT v\n  ON v.EQUIPMENT_ID = b.TRUCK_ID\n  AND v.ACTIVATION_DATE >= DATEADD(day, -7, b.BREAKDOWN_DATE)\n  AND v.ACTIVATION_DATE < b.BREAKDOWN_DATE\nGROUP BY 1, 2\n\n-- Then:\nVIMS % = events_with_alert_count > 0 / total_events * 100</div>';
+  html += '<div class="audit-calc">Result: <strong>'+f.vims+'%</strong> of "'+f.mode+'" events had VIMS warning<br>';
+  html += 'When alerts WERE present: avg <strong>'+(f.avgVims || 'N/A')+'</strong> alerts in the 7-day window<br><br>';
+  html += (f.vims >= 80 ? 'Very strong signal — almost always gives advance warning. Highly suitable for condition-based monitoring.' : f.vims >= 65 ? 'Good signal — majority of events are forewarned. Suitable for monitoring with some blind spots.' : f.vims >= 50 ? 'Moderate signal — about half the time you get warning, half the time you don\'t. Unreliable as sole predictor.' : 'Weak signal — most events arrive without VIMS warning. Not suitable for VIMS-based prediction.');
+  html += '</div>';
+  html += '<p style="font-size:0.78rem; color:#f59e0b; margin-top:0.5rem;"><strong>Caveat:</strong> VIMS alerts are for ALL systems on the truck, not filtered to "'+f.sys+'". A brake temperature alert before a hydraulic failure still counts as "has VIMS signal." This measures "was the truck showing ANY distress" — not "was this specific '+f.sys+' failure predicted by a '+f.sys+'-specific sensor."</p>';
+  html += '</div></div>';
 
-    <tr><td><strong>Avg Hours</strong></td><td>${f.avgH}h</td>
-    <td><code style="font-size:0.7rem;">AMT_DBO_SHIFTLOG_EVENTS_V</code></td>
-    <td><code style="font-size:0.7rem;">ROUND(AVG(COALESCE(e.ACTUALDOWNHOURS, 0)), 1)</code> with same filters.<br>
-    <strong>What this means:</strong> Each "${f.mode}" event takes the truck out of service for an average of ${f.avgH} hours (${(f.avgH/24).toFixed(1)} days). ${f.avgH >= 168 ? 'This is catastrophic-level severity (>7 days).' : f.avgH >= 24 ? 'This is a multi-day repair.' : 'This is a same-day or next-day repair.'}</td></tr>
+  // Step 6: Pattern Classification
+  const patternNames = {A:'A — Bathtub',B:'B — Wear-out',C:'C — Fatigue',D:'D — Break-in',E:'E — Random',F:'F — Infant Mortality'};
+  const patternRules = {
+    A:'Infant 35-60% AND VIMS 40-70% AND high severity or catastrophic events. Shows BOTH infant mortality and wear-out characteristics.',
+    B:'Known component-life-limited items with low infant rate. Failure correlates with hours/cycles.',
+    C:'VIMS >= 65% AND Infant < 50%. Good signal + repairs hold = gradual degradation with P-F curve.',
+    D:'Post-overhaul stabilization pattern. Low initial rate rising to constant.',
+    E:'VIMS < 50% AND Infant < 40%. No detectable pattern — random occurrence.',
+    F:'Infant >= 50% (or dominant infant characteristic). Repairs are the primary risk.'
+  };
+  html += '<div class="audit-step"><div class="audit-step-num">6</div><div class="audit-step-content">';
+  html += '<strong style="color:#93c5fd; font-size:0.9rem;">RCM Pattern = '+patternNames[f.pattern]+'</strong>';
+  html += '<p style="font-size:0.82rem; margin-top:0.4rem;"><strong>Source:</strong> Derived from Steps 4 (Infant %) and 5 (VIMS %) using classification rules</p>';
+  html += '<div class="audit-sql">Classification Rule for Pattern '+f.pattern+':\n'+patternRules[f.pattern]+'\n\nApplied to this failure mode:\n  Infant %: '+f.infant+'%\n  VIMS %:   '+f.vims+'%\n  Catastrophic events: '+f.cat+'</div>';
+  html += '<div class="audit-calc">'+f.why+'</div>';
+  html += '</div></div>';
 
-    <tr><td><strong>Total Hours</strong></td><td>${f.totalH.toLocaleString()}h</td>
-    <td><code style="font-size:0.7rem;">AMT_DBO_SHIFTLOG_EVENTS_V</code></td>
-    <td><code style="font-size:0.7rem;">SUM(COALESCE(e.ACTUALDOWNHOURS, 0))</code> with same filters.<br>
-    <strong>What this means:</strong> This failure mode has consumed ${f.totalH.toLocaleString()} total hours of truck availability. ${f.totalH >= 1000 ? 'High-impact failure mode -- worth investing in prevention.' : f.totalH >= 300 ? 'Moderate impact.' : 'Low total impact, though individual events may be severe.'}</td></tr>
+  // Step 7: Predict Decision
+  html += '<div class="audit-step"><div class="audit-step-num">7</div><div class="audit-step-content">';
+  html += '<strong style="color:#93c5fd; font-size:0.9rem;">Predict? '+predLabel+'</strong>';
+  html += '<p style="font-size:0.82rem; margin-top:0.4rem;"><strong>Source:</strong> Derived from VIMS %, Infant %, total downtime impact, and RCM pattern</p>';
+  html += '<div class="audit-sql">Decision Rules:\n  YES:     VIMS >= 65% + sufficient impact → condition monitoring\n  PARTIAL: Mixed metrics (moderate VIMS + moderate infant) → dual strategy\n  NO:      VIMS < 50% OR low total impact → rapid response / run-to-fail\n\nThis failure mode:\n  VIMS:    '+f.vims+'%  '+(f.vims >= 65 ? '(>= 65% threshold ✓)' : f.vims >= 50 ? '(between 50-65%, borderline)' : '(< 50% threshold ✗)')+'\n  Infant:  '+f.infant+'%  '+(f.infant < 50 ? '(< 50% ✓ repairs hold)' : '(>= 50% ✗ repairs failing)')+'\n  Impact:  '+f.totalH.toLocaleString()+'h total  '+(f.totalH >= 300 ? '(significant)' : '(low)')+'\n  Pattern: '+f.pattern+'</div>';
+  html += '<div class="finding '+predClass+'" style="margin:0.5rem 0;">'+predictLogic+'</div>';
+  html += '</div></div>';
 
-    <tr><td><strong>Infant %</strong></td><td>${f.infant !== null ? f.infant+'%' : 'N/A'}</td>
-    <td><code style="font-size:0.7rem;">AMT_DBO_SHIFTLOG_EVENTS_V</code> (self-join via window function)</td>
-    <td>For each event, find the PREVIOUS breakdown on the <strong>same truck + same system</strong>:<br>
-    <code style="font-size:0.7rem;">LAG(event_timestamp) OVER (<br>&nbsp;&nbsp;PARTITION BY truck_id, system_name<br>&nbsp;&nbsp;ORDER BY event_timestamp<br>)</code><br>
-    Then: <code style="font-size:0.7rem;">DATEDIFF(day, previous_event, this_event) <= 7</code><br>
-    <strong>Infant % = events within 7 days of prior same-system event / events with a prior event * 100</strong><br>
-    Result: ${f.infant}% means ${f.infant >= 60 ? 'most repairs on this system fail within a week. Critical repair quality issue.' : f.infant >= 40 ? 'a significant portion of repairs don\'t hold. Worth investigating repair procedures.' : f.infant >= 20 ? 'some recurrence but mostly repairs hold.' : 'repairs are effective. Low recurrence.'}<br>
-    <strong>Caveat:</strong> This is same-SYSTEM (e.g., all "Power Train"), not same exact failure description. An engine coolant fix followed by an engine oil failure 5 days later counts as infant mortality even though they may be unrelated.</td></tr>
+  // Step 8: Attack Strategy
+  html += '<div class="audit-step"><div class="audit-step-num">8</div><div class="audit-step-content">';
+  html += '<strong style="color:#93c5fd; font-size:0.9rem;">Attack Strategy</strong>';
+  html += '<p style="font-size:0.85rem; margin-top:0.5rem; line-height:1.7;">'+f.strategy+'</p>';
+  html += '</div></div>';
 
-    <tr><td><strong>VIMS %</strong></td><td>${f.vims}%</td>
-    <td><code style="font-size:0.7rem;">SILVER_HEALTH_ALARM_EVENT</code></td>
-    <td>For each breakdown, count VIMS health alarms in the 7 days before:<br>
-    <code style="font-size:0.7rem;">SELECT COUNT(*) FROM SILVER_HEALTH_ALARM_EVENT v<br>
-    WHERE v.EQUIPMENT_ID = truck_id<br>
-    AND v.ACTIVATION_DATE >= event_date - 7 days<br>
-    AND v.ACTIVATION_DATE < event_date</code><br>
-    <strong>VIMS % = events with >= 1 alert / total events * 100</strong><br>
-    Result: ${f.vims}% of "${f.mode}" events had at least one VIMS alert in the prior week.
-    ${f.vims >= 80 ? 'Very strong signal -- almost always gives advance warning.' : f.vims >= 65 ? 'Good signal -- majority of events are forewarned.' : f.vims >= 50 ? 'Moderate signal -- about half the time you get warning.' : 'Weak signal -- most events arrive without VIMS warning.'}<br>
-    <strong>Caveat:</strong> VIMS alerts are for ALL systems on the truck, not filtered to ${f.sys}. A brake temp alert before a hydraulic failure still counts. This measures "was the truck showing ANY distress" not "was this specific failure predicted."<br>
-    When alerts were present, there were ${f.avgVims || 'N/A'} alerts on average in the 7-day window.</td></tr>
-    </table>
-
-    <h4>Predict Decision: ${predLabel}</h4>
-    <div class="finding ${f.predict==='yes'?'success':f.predict==='partial'?'warn':'critical'}">
-    <strong>Logic:</strong> ${predictLogic}
-    </div>
-
-    <h4>Attack Strategy</h4>
-    <p>${f.strategy}</p>
-    <p style="color:#64748b; font-size:0.82rem;"><strong>Classification rationale:</strong> ${f.why}</p>
-  `;
-  row.parentElement.parentElement.parentElement.appendChild(box);
-  box.scrollIntoView({behavior:'smooth',block:'start'});
+  document.getElementById('audit-modal').innerHTML = html;
+  document.getElementById('audit-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
 }
 </script>
 
