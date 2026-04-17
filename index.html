@@ -56,9 +56,10 @@
   </div>
   <nav class="max-w-screen-2xl mx-auto px-6 flex gap-6 -mb-px">
     <button onclick="switchTab('overview')" id="tab-overview" class="tab-btn py-2.5 text-sm">1. Overview</button>
-    <button onclick="switchTab('charts')" id="tab-charts" class="tab-btn py-2.5 text-sm">2. Data Evidence</button>
-    <button onclick="switchTab('eda')" id="tab-eda" class="tab-btn py-2.5 text-sm">3. Analysis</button>
-    <button onclick="switchTab('strategy')" id="tab-strategy" class="tab-btn py-2.5 text-sm">4. Strategy</button>
+    <button onclick="switchTab('explorer')" id="tab-explorer" class="tab-btn py-2.5 text-sm">2. Failure Explorer</button>
+    <button onclick="switchTab('charts')" id="tab-charts" class="tab-btn py-2.5 text-sm">3. Data Evidence</button>
+    <button onclick="switchTab('eda')" id="tab-eda" class="tab-btn py-2.5 text-sm">4. Analysis</button>
+    <button onclick="switchTab('strategy')" id="tab-strategy" class="tab-btn py-2.5 text-sm">5. Strategy</button>
   </nav>
 </header>
 
@@ -241,7 +242,208 @@
 </div>
 </div>
 
-<!-- ═══════════════ TAB 2: DATA CHARTS ═══════════════ -->
+<!-- ═══════════════ TAB 2: FAILURE MODE EXPLORER ═══════════════ -->
+<div id="panel-explorer" class="tab-panel">
+<div class="content">
+
+<h2>Failure Mode Explorer</h2>
+<p style="color:#94a3b8; margin-bottom:1rem;">Click a pattern to drill down into the specific failure modes. Each mode shows: predictability, severity, infant mortality rate, and recommended attack strategy.</p>
+
+<div id="rcm-patterns" style="display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-bottom:2rem;">
+  <div class="rcm-card" onclick="showPattern('A')" style="cursor:pointer; background:#1e293b; border:2px solid #334155; border-radius:12px; padding:1.25rem; transition:all .2s;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+      <strong style="color:#f8fafc; font-size:1.1rem;">A -- Bathtub</strong>
+      <span class="badge badge-red">Complex</span>
+    </div>
+    <p style="font-size:0.78rem; color:#94a3b8; margin:0;">High early + low middle + high end. Post-repair failures AND wear-out.</p>
+    <div style="margin-top:0.75rem; font-size:2rem; text-align:center; letter-spacing:2px; color:#64748b;">\_____/</div>
+  </div>
+  <div class="rcm-card" onclick="showPattern('B')" style="cursor:pointer; background:#1e293b; border:2px solid #334155; border-radius:12px; padding:1.25rem; transition:all .2s;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+      <strong style="color:#f8fafc; font-size:1.1rem;">B -- Wear-out</strong>
+      <span class="badge badge-green">Predictable</span>
+    </div>
+    <p style="font-size:0.78rem; color:#94a3b8; margin:0;">Stable until end of life, then sharp failure spike. Time-based replacement.</p>
+    <div style="margin-top:0.75rem; font-size:2rem; text-align:center; letter-spacing:2px; color:#64748b;">______/</div>
+  </div>
+  <div class="rcm-card" onclick="showPattern('C')" style="cursor:pointer; background:#1e293b; border:2px solid #334155; border-radius:12px; padding:1.25rem; transition:all .2s;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+      <strong style="color:#f8fafc; font-size:1.1rem;">C -- Fatigue</strong>
+      <span class="badge badge-amber">Gradual</span>
+    </div>
+    <p style="font-size:0.78rem; color:#94a3b8; margin:0;">Gradually increasing failure probability. P-F curve. Best ML use case.</p>
+    <div style="margin-top:0.75rem; font-size:2rem; text-align:center; letter-spacing:2px; color:#64748b;">____/''</div>
+  </div>
+  <div class="rcm-card" onclick="showPattern('D')" style="cursor:pointer; background:#1e293b; border:2px solid #334155; border-radius:12px; padding:1.25rem; transition:all .2s;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+      <strong style="color:#f8fafc; font-size:1.1rem;">D -- Break-in</strong>
+      <span class="badge badge-blue">Stabilizing</span>
+    </div>
+    <p style="font-size:0.78rem; color:#94a3b8; margin:0;">Low initially, rises to constant random rate. Post-overhaul stabilization.</p>
+    <div style="margin-top:0.75rem; font-size:2rem; text-align:center; letter-spacing:2px; color:#64748b;">/------</div>
+  </div>
+  <div class="rcm-card" onclick="showPattern('E')" style="cursor:pointer; background:#1e293b; border:2px solid #334155; border-radius:12px; padding:1.25rem; transition:all .2s;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+      <strong style="color:#f8fafc; font-size:1.1rem;">E -- Random</strong>
+      <span class="badge badge-amber">Unpredictable</span>
+    </div>
+    <p style="font-size:0.78rem; color:#94a3b8; margin:0;">Constant failure probability. No warning. No age relationship. Accept it.</p>
+    <div style="margin-top:0.75rem; font-size:2rem; text-align:center; letter-spacing:2px; color:#64748b;">------</div>
+  </div>
+  <div class="rcm-card" onclick="showPattern('F')" style="cursor:pointer; background:#1e293b; border:2px solid #ef4444; border-radius:12px; padding:1.25rem; transition:all .2s;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+      <strong style="color:#f8fafc; font-size:1.1rem;">F -- Infant Mortality</strong>
+      <span class="badge badge-red">Critical</span>
+    </div>
+    <p style="font-size:0.78rem; color:#94a3b8; margin:0;">High immediately after repair, drops if it survives. <strong style="color:#ef4444;">53% of fleet events, 82% of downtime.</strong></p>
+    <div style="margin-top:0.75rem; font-size:2rem; text-align:center; letter-spacing:2px; color:#64748b;">\______</div>
+  </div>
+</div>
+
+<div id="pattern-detail" style="display:none;">
+  <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
+    <button onclick="hidePattern()" style="background:#334155; border:none; color:#e2e8f0; padding:6px 14px; border-radius:6px; cursor:pointer; font-size:0.85rem;">Back to patterns</button>
+    <h2 id="pattern-title" style="margin:0; border:none; padding:0;"></h2>
+  </div>
+  <div id="pattern-description" class="finding" style="margin-bottom:1.5rem;"></div>
+  <h3>Failure Modes in This Pattern</h3>
+  <p style="color:#64748b; font-size:0.82rem; margin-bottom:0.75rem;">Each row is a specific failure mode classified into this pattern based on its infant mortality rate and VIMS predictability.</p>
+  <div id="pattern-table"></div>
+  <h3 id="decision-title" style="margin-top:2rem;">Decision: Predict or Not?</h3>
+  <div id="pattern-decision"></div>
+</div>
+
+</div>
+</div>
+
+<script>
+const failureModes = [
+  {mode:"Bearing A Frame Broken",sys:"Power Train",events:21,trucks:12,avgH:76.3,totalH:1603,infant:58.8,vims:52.4,avgVims:1549,cat:0,pattern:"A",predict:"partial",strategy:"Phase 1 (infant): Post-repair monitoring + enhanced torque QC. Phase 2 (wear-out): Track bearing hours, schedule replacement before fatigue limit. Consider vibration sensors (Box Z).",why:"Shows both infant mortality (58.8%) AND progressive signal. Classic bathtub -- fails after repair, then stable, then wears out."},
+  {mode:"Bearing A Frame Broken",sys:"Cab/Frame/Body",events:12,trucks:8,avgH:91.7,totalH:1101,infant:36.4,vims:50.0,avgVims:700,cat:1,pattern:"A",predict:"partial",strategy:"Structural inspection during PM. Vibration monitoring for early detection. 1 catastrophic event (>168h) -- high consequence.",why:"Lower infant rate than PT variant but has catastrophic events. Bathtub: some early failures, then wear-out."},
+  {mode:"Transmission Failure",sys:"Power Train",events:9,trucks:6,avgH:71.3,totalH:642,infant:44.4,vims:55.6,avgVims:2925,cat:2,pattern:"A",predict:"yes",strategy:"Very high VIMS signal when present (2,925 avg alerts). Use VIMS threshold + component hour tracking. 2 catastrophic events -- high priority.",why:"Bathtub with extreme VIMS signal in wear-out phase. Catastrophic severity justifies investment."},
+  {mode:"Transmission Shifting Problem",sys:"Power Train",events:23,trucks:15,avgH:34.5,totalH:794,infant:43.5,vims:91.3,avgVims:946,cat:0,pattern:"C",predict:"yes",strategy:"VIMS threshold rule: transmission temp + shift quality alerts. 91.3% predictable -- strongest CBM candidate in fleet. Deploy immediately (Box A).",why:"Textbook P-F curve. Gradual degradation visible in VIMS days before failure. Moderate infant rate (43.5%) suggests some repair quality issues too."},
+  {mode:"Trans Shifting Problem",sys:"Power Train",events:10,trucks:7,avgH:35.3,totalH:353,infant:44.4,vims:90.0,avgVims:503,cat:0,pattern:"C",predict:"yes",strategy:"Same as Transmission Shifting Problem (spelling variant). Consolidate in data pipeline.",why:"Duplicate of above with different spelling. Same strong VIMS signal."},
+  {mode:"Transmisi Shifting Problem",sys:"Power Train",events:13,trucks:7,avgH:34.4,totalH:447,infant:63.6,vims:69.2,avgVims:148,cat:0,pattern:"F",predict:"yes",strategy:"63.6% infant mortality + 69% VIMS signal. Dual attack: post-repair monitoring AND VIMS threshold. Spelling variant -- consolidate.",why:"Higher infant rate than other spelling variants suggests specific trucks/crews with repair quality issues."},
+  {mode:"Engine Low Power",sys:"Engine",events:32,trucks:18,avgH:19.9,totalH:636,infant:37.9,vims:71.9,avgVims:556,cat:0,pattern:"C",predict:"yes",strategy:"VIMS boost pressure + fuel system alerts. 71.9% predictable across 18 trucks. Wide fleet impact. Condition-based monitoring (Box B).",why:"Gradual power loss visible in VIMS. Spreads across many trucks -- systemic, not truck-specific."},
+  {mode:"Engine Low Power",sys:"Unmapped",events:7,trucks:5,avgH:30.7,totalH:215,infant:33.3,vims:85.7,avgVims:60,cat:0,pattern:"C",predict:"yes",strategy:"Same failure mode, unmapped component code. Fix component mapping. 85.7% VIMS detectable.",why:"Data quality issue -- should be mapped to Engine system."},
+  {mode:"Hydraulic Oil Leaking",sys:"Hydraulics",events:13,trucks:10,avgH:30.9,totalH:402,infant:18.2,vims:69.2,avgVims:538,cat:0,pattern:"C",predict:"yes",strategy:"VIMS hydraulic pressure alerts. Low infant mortality (18.2%) = repairs hold well. Focus on early detection via P-F curve.",why:"Low infant rate means this is genuine wear/degradation, not repair failure. Good CBM candidate."},
+  {mode:"Hydraulic Oil Leak",sys:"Hydraulics",events:19,trucks:14,avgH:14.9,totalH:282,infant:21.4,vims:68.4,avgVims:504,cat:0,pattern:"C",predict:"yes",strategy:"Same as above (spelling variant). 68.4% VIMS detectable. Low infant rate. Monitor hydraulic pressure trend.",why:"Spelling variant. Consolidate with Hydraulic Oil Leaking."},
+  {mode:"Steering Oil Leak",sys:"Hydraulics",events:13,trucks:11,avgH:8.8,totalH:114,infant:50.0,vims:69.2,avgVims:284,cat:0,pattern:"F",predict:"yes",strategy:"50% infant mortality + 69% VIMS. Dual: post-repair leak test + VIMS steering pressure monitoring.",why:"Half are repair failures (infant), half are genuine degradation. Needs both strategies."},
+  {mode:"Steering Oil Leaking",sys:"Hydraulics",events:10,trucks:7,avgH:8.1,totalH:81,infant:20.0,vims:70.0,avgVims:468,cat:0,pattern:"C",predict:"yes",strategy:"Spelling variant. Low infant rate. VIMS steering pressure monitoring.",why:"Same as Steering Oil Leak with different spelling. Lower infant rate in this variant."},
+  {mode:"Steering System Problem",sys:"Hydraulics",events:7,trucks:4,avgH:20.7,totalH:145,infant:80.0,vims:85.7,avgVims:425,cat:0,pattern:"F",predict:"yes",strategy:"80% infant mortality -- primary issue is repair quality. 85.7% VIMS detectable. Post-repair mandatory testing + VIMS watch.",why:"Extremely high infant rate. Repairs are not holding. Strong VIMS signal means we can catch re-failures quickly."},
+  {mode:"Steering Pressure Low",sys:"Hydraulics",events:5,trucks:3,avgH:25.7,totalH:129,infant:75.0,vims:20.0,avgVims:306,cat:0,pattern:"F",predict:"no",strategy:"75% infant but only 20% VIMS detectable. Post-repair pressure test mandatory. Cannot rely on VIMS for prediction.",why:"High infant mortality + low VIMS signal. Repair-quality focused, not prediction-focused."},
+  {mode:"Steering Hard",sys:"Hydraulics",events:11,trucks:8,avgH:8.1,totalH:89,infant:27.3,vims:45.5,avgVims:221,cat:0,pattern:"E",predict:"no",strategy:"Low predictability (45.5%), low infant rate. Run-to-fail with rapid response. Pre-position steering parts.",why:"No strong pattern. Random-like occurrence across 8 trucks. Accept and respond quickly."},
+  {mode:"Brake Problem",sys:"Power Train",events:9,trucks:5,avgH:46.0,totalH:414,infant:55.6,vims:77.8,avgVims:684,cat:0,pattern:"F",predict:"yes",strategy:"55.6% infant + 77.8% VIMS. Post-repair brake test + VIMS brake temp/pressure monitoring. Dual attack.",why:"Infant mortality dominant but VIMS catches most events. Brake repairs need QC before truck release."},
+  {mode:"Brake Stroke",sys:"Power Train",events:17,trucks:11,avgH:10.8,totalH:183,infant:50.0,vims:70.6,avgVims:168,cat:0,pattern:"F",predict:"yes",strategy:"50% infant + 70.6% VIMS. Post-repair stroke measurement verification + VIMS monitoring.",why:"Half repeat within 7d. Brake stroke adjustment not holding. Verify stroke measurement before release."},
+  {mode:"Brake Stroke",sys:"Cab/Frame/Body",events:5,trucks:3,avgH:47.9,totalH:239,infant:40.0,vims:20.0,avgVims:118,cat:0,pattern:"E",predict:"no",strategy:"Only 20% VIMS detectable. High severity (47.9h avg). Run-to-fail but prioritize rapid response due to severity.",why:"Low predictability + high impact. Random pattern. Can't predict -- invest in fast repair capability."},
+  {mode:"Brake Stroke",sys:"Brakes",events:5,trucks:5,avgH:26.2,totalH:131,infant:0.0,vims:20.0,avgVims:89,cat:0,pattern:"E",predict:"no",strategy:"Zero infant mortality + 20% VIMS. Independent random events across 5 different trucks. Run-to-fail.",why:"No pattern at all. Random across fleet. Not worth predicting."},
+  {mode:"Engine Coolant Temperature High",sys:"Engine",events:7,trucks:3,avgH:38.2,totalH:267,infant:66.7,vims:100.0,avgVims:398,cat:0,pattern:"F",predict:"yes",strategy:"66.7% infant + 100% VIMS detectable. Always shows warning signal. Post-repair cooling system pressure test mandatory.",why:"Every event has VIMS warning but 2/3 are repeat failures. The detection works -- the repairs don't."},
+  {mode:"Engine Oil Leak",sys:"Engine",events:13,trucks:7,avgH:18.4,totalH:239,infant:54.5,vims:69.2,avgVims:266,cat:0,pattern:"F",predict:"yes",strategy:"54.5% infant + 69% VIMS. Post-repair oil pressure test + VIMS oil level/pressure monitoring.",why:"Over half repeat within 7 days. Oil leak repairs not sealing properly."},
+  {mode:"Coolant Leak",sys:"Engine",events:11,trucks:9,avgH:16.7,totalH:183,infant:30.0,vims:90.9,avgVims:1575,cat:0,pattern:"C",predict:"yes",strategy:"90.9% VIMS detectable with very strong signal (1,575 avg alerts). Excellent CBM candidate. VIMS coolant level + temp monitoring.",why:"Low infant rate (30%) + very high VIMS signal. Classic gradual degradation pattern."},
+  {mode:"Coolant Leaks",sys:"Engine",events:8,trucks:6,avgH:18.6,totalH:149,infant:33.3,vims:87.5,avgVims:769,cat:0,pattern:"C",predict:"yes",strategy:"Spelling variant of Coolant Leak. Consolidate. Same strong VIMS signal.",why:"Duplicate with different spelling."},
+  {mode:"Coolant Leaking",sys:"Engine",events:12,trucks:9,avgH:8.8,totalH:106,infant:27.3,vims:33.3,avgVims:1560,cat:0,pattern:"E",predict:"no",strategy:"Only 33% VIMS detectable despite high alert count when present. Erratic signal. Enhanced PM coolant inspection.",why:"Inconsistent VIMS signal. Some events have massive alerts, most have zero. Random-like for prediction purposes."},
+  {mode:"Engine Coolant Leaking",sys:"Engine",events:11,trucks:10,avgH:13.0,totalH:143,infant:10.0,vims:36.4,avgVims:87,cat:0,pattern:"E",predict:"no",strategy:"Only 36% VIMS detectable. Low infant (10%) = repairs work. Run-to-fail + enhanced visual inspection during PM.",why:"Another coolant leak spelling variant. Low predictability. Repairs hold well (10% infant). Accept random occurrence."},
+  {mode:"Investigate Coolant Mix Oil",sys:"Engine",events:6,trucks:3,avgH:30.8,totalH:185,infant:50.0,vims:100.0,avgVims:81,cat:0,pattern:"F",predict:"yes",strategy:"100% VIMS detectable + 50% infant. Root cause: coolant-oil separator seal. Engineering review (Box B root cause).",why:"Always detectable but keeps recurring. Root cause elimination candidate."},
+  {mode:"AC Hot",sys:"Cab/Frame/Body",events:39,trucks:20,avgH:7.7,totalH:299,infant:31.4,vims:43.6,avgVims:423,cat:0,pattern:"E",predict:"no",strategy:"43.6% VIMS (weak). Low severity (7.7h avg). High frequency across 20 trucks. Run-to-fail. Pre-stock AC parts.",why:"Fleet-wide random pattern. Low impact per event. Not worth predictive investment."},
+  {mode:"Repair AC Hot",sys:"Cab/Frame/Body",events:13,trucks:11,avgH:6.3,totalH:82,infant:16.7,vims:53.8,avgVims:490,cat:0,pattern:"E",predict:"no",strategy:"Spelling variant of AC Hot. Same conclusion: run-to-fail.",why:"Same failure, different description."},
+  {mode:"Dump Body Broken",sys:"Cab/Frame/Body",events:6,trucks:4,avgH:49.7,totalH:298,infant:50.0,vims:66.7,avgVims:961,cat:0,pattern:"A",predict:"partial",strategy:"50% infant + 66.7% VIMS. High severity. Post-repair structural inspection + VIMS body position sensors.",why:"Bathtub: half fail after repair (infant), others show gradual VIMS signal (wear/fatigue)."},
+  {mode:"Repair Dump Body",sys:"Cab/Frame/Body",events:6,trucks:5,avgH:41.2,totalH:247,infant:33.3,vims:50.0,avgVims:115,cat:0,pattern:"E",predict:"no",strategy:"50% VIMS, moderate severity. Limited signal strength. Enhanced post-repair inspection.",why:"Borderline pattern. Weak signal. Focus on repair quality."},
+  {mode:"Hydraulic Oil Leaking",sys:"Power Train",events:7,trucks:6,avgH:27.8,totalH:195,infant:14.3,vims:85.7,avgVims:613,cat:0,pattern:"C",predict:"yes",strategy:"85.7% VIMS detectable + low infant rate (14.3%). Excellent CBM candidate. Monitor hydraulic pressure trend.",why:"Repairs hold well. Genuine degradation pattern. Classic P-F curve."},
+  {mode:"Hydraulic Oil Leak",sys:"Power Train",events:11,trucks:7,avgH:22.3,totalH:245,infant:37.5,vims:63.6,avgVims:433,cat:0,pattern:"C",predict:"yes",strategy:"63.6% VIMS. Moderate infant (37.5%). Monitor + post-repair pressure test.",why:"Mix of degradation and repair quality. Address both."},
+  {mode:"Main Drive Shaft Vibration",sys:"Power Train",events:7,trucks:5,avgH:12.9,totalH:90,infant:33.3,vims:85.7,avgVims:267,cat:0,pattern:"C",predict:"yes",strategy:"85.7% VIMS detectable. Low severity. Condition monitoring via vibration signal in VIMS. Early detection feasible.",why:"Strong signal, manageable severity. Good CBM candidate."},
+  {mode:"Transmisi Oil Leaking",sys:"Power Train",events:7,trucks:5,avgH:29.7,totalH:208,infant:33.3,vims:100.0,avgVims:57,cat:0,pattern:"C",predict:"yes",strategy:"100% VIMS detectable (though low alert count). Oil leak progression visible. Monitor transmission oil level/pressure.",why:"Always detectable. Spelling variant -- consolidate."},
+  {mode:"Fuel Tank Leak",sys:"Engine",events:10,trucks:9,avgH:9.2,totalH:92,infant:12.5,vims:70.0,avgVims:471,cat:0,pattern:"C",predict:"yes",strategy:"70% VIMS detectable. Very low infant (12.5%). Low severity. Condition monitoring. PM fuel system inspection.",why:"Repairs hold. Gradual degradation detectable. Low priority but easy to monitor."},
+  {mode:"Engine Shutdown",sys:"Engine",events:8,trucks:6,avgH:11.2,totalH:89,infant:28.6,vims:50.0,avgVims:1082,cat:0,pattern:"E",predict:"no",strategy:"Only 50% detectable. High VIMS count when present but absent half the time. Rapid response protocol.",why:"Bimodal: half have massive alerts, half have zero. Inconsistent for prediction."},
+  {mode:"Coolant Level Shutdown",sys:"Engine",events:5,trucks:3,avgH:17.8,totalH:89,infant:40.0,vims:80.0,avgVims:984,cat:0,pattern:"C",predict:"yes",strategy:"80% VIMS detectable. Coolant level drop visible before shutdown. Monitor coolant level trend.",why:"Strong signal. Preventable if caught early."},
+  {mode:"Aftercooler Level Low",sys:"Engine",events:8,trucks:6,avgH:8.2,totalH:66,infant:25.0,vims:37.5,avgVims:369,cat:0,pattern:"E",predict:"no",strategy:"Only 37.5% detectable. Low severity. Run-to-fail + PM inspection of aftercooler levels.",why:"Weak signal. Low impact. Not worth predictive investment."},
+  {mode:"Engine Coolant Leak",sys:"Engine",events:7,trucks:6,avgH:8.6,totalH:60,infant:40.0,vims:42.9,avgVims:419,cat:0,pattern:"E",predict:"no",strategy:"42.9% VIMS. Yet another coolant leak variant. Run-to-fail + consolidate all coolant leak descriptions.",why:"Low predictability. Another spelling variant."},
+  {mode:"System Voltage Low",sys:"Electrical",events:6,trucks:5,avgH:8.6,totalH:51,infant:33.3,vims:83.3,avgVims:675,cat:0,pattern:"C",predict:"yes",strategy:"83.3% VIMS detectable. Voltage drop is gradual and sensor-visible. Monitor battery/alternator voltage trend.",why:"Strong electrical signal. Gradual voltage degradation."},
+  {mode:"Jigsaw No Communication",sys:"Electrical",events:6,trucks:5,avgH:8.1,totalH:49,infant:16.7,vims:33.3,avgVims:20,cat:0,pattern:"E",predict:"no",strategy:"33% VIMS. Telemetry system failure -- ironic (the monitoring system itself fails). Run-to-fail + spare comm units.",why:"Random electronic failure. Can't predict with the system that's failing."},
+  {mode:"Transmission Shifting Problem",sys:"Cab/Frame/Body",events:6,trucks:4,avgH:48.8,totalH:293,infant:50.0,vims:100.0,avgVims:550,cat:0,pattern:"F",predict:"yes",strategy:"100% VIMS detectable + 50% infant. High severity (48.8h). Post-repair shift test + VIMS monitoring.",why:"Always shows VIMS warning but half repeat quickly. Misclassified system (should be Power Train)."},
+  {mode:"Transmission Shifting Problem",sys:"Unmapped",events:6,trucks:5,avgH:38.2,totalH:229,infant:20.0,vims:83.3,avgVims:163,cat:0,pattern:"C",predict:"yes",strategy:"Unmapped component code. Fix mapping. 83.3% VIMS detectable. Same CBM strategy as PT variant.",why:"Data quality issue + same strong signal."},
+  {mode:"Bearing A Frame Broken",sys:"Hydraulics",events:11,trucks:7,avgH:69.0,totalH:759,infant:40.0,vims:45.5,avgVims:1294,cat:0,pattern:"A",predict:"partial",strategy:"Bathtub: 40% infant + moderate VIMS (45.5%) but very high alert count when present (1,294). Post-repair inspection + vibration monitoring for wear-out phase.",why:"Structural failure with both repair-quality and wear-out characteristics."},
+  {mode:"Transmission Problem",sys:"Power Train",events:7,trucks:5,avgH:56.8,totalH:398,infant:40.0,vims:57.1,avgVims:591,cat:0,pattern:"A",predict:"partial",strategy:"40% infant + 57% VIMS. Moderate on both axes. Post-repair validation + VIMS transmission monitoring.",why:"Shows both patterns weakly. Bathtub with moderate signal."},
+  {mode:"Engine Coolant Level Low",sys:"Engine",events:5,trucks:5,avgH:10.5,totalH:53,infant:20.0,vims:80.0,avgVims:141,cat:0,pattern:"C",predict:"yes",strategy:"80% VIMS. Coolant level sensor detects drop before engine damage. Simple threshold alert.",why:"Clear gradual signal. Easy to detect."},
+  {mode:"Air Conditioner Hot",sys:"Cab/Frame/Body",events:5,trucks:3,avgH:13.3,totalH:66,infant:40.0,vims:100.0,avgVims:161,cat:0,pattern:"D",predict:"no",strategy:"100% VIMS but low severity and fleet-limited (3 trucks). AC performance degrades after overhaul. Accept steady-state rate.",why:"Post-repair break-in on specific trucks. Settles to constant rate."}
+];
+
+function showPattern(p) {
+  const names = {A:'A -- Bathtub',B:'B -- Wear-out',C:'C -- Fatigue',D:'D -- Break-in',E:'E -- Random',F:'F -- Infant Mortality'};
+  const descs = {
+    A:'<strong>Bathtub Curve:</strong> High failure rate immediately after repair (left wall), then stable low rate during useful life (bottom), then increasing failures as component wears out (right wall). Needs TWO strategies: post-repair QC for the infant phase, and component life tracking for the wear-out phase.',
+    B:'<strong>Wear-out Curve:</strong> Reliable operation until component reaches end of design life, then failure probability spikes. The most predictable pattern -- schedule replacement BEFORE the wear-out point based on hours/cycles. Classic preventive maintenance.',
+    C:'<strong>Fatigue Curve (P-F Curve):</strong> Failure probability increases gradually with no sharp point. This is the sweet spot for predictive maintenance and ML models. Monitor the degradation trend (VIMS alerts, oil analysis) and intervene when the condition crosses a threshold. The P-F interval is your intervention window.',
+    D:'<strong>Break-in Curve:</strong> New or recently overhauled component starts reliable, then settles into a constant random failure rate. The steady-state rate is what it is -- improve it through design changes, not through prediction.',
+    E:'<strong>Random (Constant):</strong> Equal failure probability at any time. No warning signs, no age relationship, no P-F curve. These cannot be predicted. Invest in rapid response, pre-positioned parts, and redundancy instead of prediction.',
+    F:'<strong>Infant Mortality:</strong> High failure rate immediately after maintenance/repair, then drops to a stable level if the component survives the initial period. This is the fleet\'s dominant pattern: <span style="color:#ef4444;">53% of events, 82% of downtime</span>. The repair itself is the highest-risk event. Attack with post-repair monitoring, enhanced QC, and repair quality audits.'
+  };
+  const badges = {A:'badge-red',B:'badge-green',C:'badge-amber',D:'badge-blue',E:'badge-amber',F:'badge-red'};
+  const items = failureModes.filter(f => f.pattern === p);
+  document.getElementById('rcm-patterns').style.display = 'none';
+  document.getElementById('pattern-detail').style.display = 'block';
+  document.getElementById('pattern-title').innerHTML = names[p] + ' <span class="badge '+badges[p]+'">'+items.length+' failure modes</span>';
+  document.getElementById('pattern-description').innerHTML = descs[p];
+
+  let html = '<table><tr><th>System</th><th>Failure Mode</th><th>Events</th><th>Trucks</th><th>Avg Hours</th><th>Total Hours</th><th>Infant %</th><th>VIMS %</th><th>Predict?</th></tr>';
+  items.sort((a,b) => b.totalH - a.totalH);
+  items.forEach(f => {
+    const predBadge = f.predict === 'yes' ? '<span class="badge badge-green">Yes</span>' : f.predict === 'partial' ? '<span class="badge badge-amber">Partial</span>' : '<span class="badge badge-red">No</span>';
+    html += '<tr style="cursor:pointer;" onclick="showDetail(this)" data-mode=\''+JSON.stringify(f).replace(/'/g,"&#39;")+'\'>';
+    html += '<td>'+f.sys+'</td><td><strong>'+f.mode+'</strong></td><td>'+f.events+'</td><td>'+f.trucks+'</td>';
+    html += '<td>'+f.avgH+'</td><td>'+f.totalH.toLocaleString()+'</td>';
+    html += '<td>'+(f.infant !== null ? f.infant+'%' : 'N/A')+'</td>';
+    html += '<td>'+f.vims+'%</td><td>'+predBadge+'</td></tr>';
+  });
+  html += '</table>';
+  document.getElementById('pattern-table').innerHTML = html;
+
+  // Summary decision
+  const yesCount = items.filter(f=>f.predict==='yes').length;
+  const noCount = items.filter(f=>f.predict==='no').length;
+  const partialCount = items.filter(f=>f.predict==='partial').length;
+  let decHtml = '<div class="summary-grid" style="grid-template-columns:1fr 1fr 1fr; margin-bottom:1rem;">';
+  decHtml += '<div class="summary-card" style="border:1px solid #22c55e;"><div class="number" style="color:#22c55e;">'+yesCount+'</div><div class="label">Predictable (CBM/monitoring)</div></div>';
+  decHtml += '<div class="summary-card" style="border:1px solid #f59e0b;"><div class="number" style="color:#f59e0b;">'+partialCount+'</div><div class="label">Partially (dual strategy)</div></div>';
+  decHtml += '<div class="summary-card" style="border:1px solid #ef4444;"><div class="number" style="color:#ef4444;">'+noCount+'</div><div class="label">Not predictable (respond/accept)</div></div>';
+  decHtml += '</div>';
+  decHtml += '<p style="color:#64748b; font-size:0.82rem;">Click any row above to see the detailed attack strategy for that failure mode.</p>';
+  document.getElementById('pattern-decision').innerHTML = decHtml;
+}
+
+function hidePattern() {
+  document.getElementById('rcm-patterns').style.display = 'grid';
+  document.getElementById('pattern-detail').style.display = 'none';
+  const det = document.getElementById('mode-detail-box');
+  if(det) det.remove();
+}
+
+function showDetail(row) {
+  const f = JSON.parse(row.dataset.mode);
+  let prev = document.getElementById('mode-detail-box');
+  if(prev) prev.remove();
+  const box = document.createElement('div');
+  box.id = 'mode-detail-box';
+  box.className = 'box';
+  box.style.borderColor = f.predict==='yes'?'#22c55e':f.predict==='partial'?'#f59e0b':'#ef4444';
+  box.innerHTML = '<h3>'+f.sys+': '+f.mode+'</h3>'
+    +'<p><strong>Why this classification:</strong> '+f.why+'</p>'
+    +'<p><strong>Can we predict it?</strong> '+(f.predict==='yes'?'<span class="badge badge-green">Yes</span>':f.predict==='partial'?'<span class="badge badge-amber">Partially</span>':'<span class="badge badge-red">No</span>')+'</p>'
+    +'<p><strong>Strategy:</strong> '+f.strategy+'</p>'
+    +'<table><tr><th>Metric</th><th>Value</th></tr>'
+    +'<tr><td>Events</td><td>'+f.events+' across '+f.trucks+' trucks</td></tr>'
+    +'<tr><td>Avg downtime</td><td>'+f.avgH+' hours</td></tr>'
+    +'<tr><td>Total downtime</td><td>'+f.totalH.toLocaleString()+' hours</td></tr>'
+    +'<tr><td>Infant mortality rate</td><td>'+(f.infant!==null?f.infant+'%':'N/A')+'</td></tr>'
+    +'<tr><td>VIMS predictability</td><td>'+f.vims+'%</td></tr>'
+    +'<tr><td>Avg VIMS alerts (when present)</td><td>'+(f.avgVims||'N/A')+'</td></tr>'
+    +'<tr><td>Catastrophic events (7d+)</td><td>'+f.cat+'</td></tr>'
+    +'</table>';
+  row.parentElement.parentElement.parentElement.appendChild(box);
+  box.scrollIntoView({behavior:'smooth',block:'center'});
+}
+</script>
+
+<!-- ═══════════════ TAB 3: DATA CHARTS ═══════════════ -->
 <div id="panel-charts" class="tab-panel">
 <div class="content">
 
