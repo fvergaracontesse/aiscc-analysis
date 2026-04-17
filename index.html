@@ -106,20 +106,38 @@
 <tr><td>First move</td><td>Post-repair 7-day monitoring + VIMS threshold rules. No ML needed. 2 weeks to implement</td><td>Addresses 82% of downtime with zero ML</td></tr>
 </table>
 
-<h2>The Four Failure Patterns</h2>
+<h2>RCM Failure Patterns (Reliability-Centered Maintenance)</h2>
 
-<p>Every breakdown falls into one of four categories. Each has a different behavior and a different attack strategy.</p>
+<p>RCM defines six standard failure patterns. Every breakdown in the fleet maps to one of these curves. Each has a different detection method and attack strategy.</p>
 
 <table>
-<tr><th>Pattern</th><th>Behavior</th><th>% of Events</th><th>% of Downtime</th><th>Strategy</th></tr>
-<tr><td><strong>Gradual Degradation</strong> <span class="badge badge-green">P-F Curve</span></td><td>Truck degrades over days/weeks. VIMS alerts escalate</td><td>~14%</td><td>Low</td><td>Monitor VIMS trend. Pull before failure</td></tr>
-<tr><td><strong>Sudden Failure</strong> <span class="badge badge-amber">Blind</span></td><td>No warning. Goes from normal to broken</td><td>~22%</td><td>Moderate</td><td>Can't predict. Minimize response time. Enhanced PM inspections</td></tr>
-<tr><td><strong>Infant Mortality</strong> <span class="badge badge-red">Critical</span></td><td>Repair failed. Same system re-breaks within 7 days</td><td><strong>53%</strong></td><td><strong>82%</strong></td><td>Post-repair monitoring. Fix repair quality. Don't redeploy if alerts return</td></tr>
-<tr><td><strong>Root Cause</strong> <span class="badge badge-blue">Eliminate</span></td><td>Chronic repeat. Design flaw, parts issue, or environmental</td><td>Subset</td><td>High per failure</td><td>Eliminate permanently. Engineering change or truck retirement</td></tr>
+<tr><th>Pattern</th><th>Curve</th><th>Behavior</th><th>AISCC Example</th><th>Detection</th><th>Strategy</th></tr>
+<tr><td><strong>A -- Bathtub</strong> <span class="badge badge-red">Complex</span></td><td>High early, low middle, high end</td><td>High infant mortality after repair, stable period, then wear-out at end of component life</td><td>Engine rebuilds: 66% fail within 7 days post-repair. Survivors run stable. Eventual wear-out</td><td>Post-repair monitoring (infant phase) + VIMS trend (wear-out phase)</td><td>Enhanced post-repair QC + component life tracking. Two interventions: one early, one at end of life</td></tr>
+<tr><td><strong>B -- Wear-out</strong> <span class="badge badge-green">Predictable</span></td><td>Stable low, then sharp rise</td><td>Reliable operation until component reaches end of life, then failure probability spikes</td><td>Duo Cone Seal Final Drive: reliable until seal life is exceeded, then 100% repeat failure. Filter overdue events</td><td>Component age/hours tracking. VIMS gradual escalation in final phase</td><td>Time/usage-based replacement BEFORE wear-out point. This is classic PM scheduling</td></tr>
+<tr><td><strong>C -- Fatigue</strong> <span class="badge badge-amber">Gradual</span></td><td>Gradually increasing, no sharp point</td><td>Failure probability increases slowly with age/usage. No clear "replace at X hours" point</td><td>Hydraulic system degradation: pressure slowly drops, seals gradually wear. 14% of breakdowns show VIMS escalation pattern over days/weeks</td><td>VIMS trend monitoring (P-F curve). SOS oil degradation trends</td><td>Condition-based maintenance. Monitor the degradation curve, pull when threshold crossed. This is where predictive models add most value</td></tr>
+<tr><td><strong>D -- Break-in</strong> <span class="badge badge-blue">Stabilizing</span></td><td>Low initially, rises to constant</td><td>New or recently overhauled component starts reliable, then settles into a constant random failure rate</td><td>Post-overhaul trucks: initial low failure period, then return to fleet-average breakdown rate</td><td>Fleet average comparison. If truck exceeds fleet MTBF, investigate</td><td>Accept the steady-state rate. Focus on reducing it through design improvements, not prediction</td></tr>
+<tr><td><strong>E -- Random</strong> <span class="badge badge-amber">Unpredictable</span></td><td>Flat constant line</td><td>Equal failure probability at any time. No age relationship. No warning signal</td><td>22% of breakdowns arrive with zero VIMS warning. Electrical failures (25.6% blind). AC system failures. External damage</td><td>Cannot be predicted by condition monitoring</td><td>Rapid response protocols. Pre-positioned spare parts. Redundancy where possible. Accept unpredictability</td></tr>
+<tr><td><strong>F -- Infant Mortality</strong> <span class="badge badge-red">Critical</span></td><td>High initial, drops to constant</td><td>High failure rate immediately after maintenance/repair, then drops to stable level if it survives the initial period</td><td><strong>53% of all breakdowns. 82% of all downtime.</strong> 66-68% of Engine and Power Train repairs fail within 7 days</td><td>Post-repair VIMS monitoring. 7-day watch window</td><td>Mandatory post-repair monitoring. Enhanced inspection before release. Repair quality audit. Root cause the quality issue</td></tr>
+</table>
+
+<h3>How Our Fleet Data Maps to Each Pattern</h3>
+
+<table>
+<tr><th>RCM Pattern</th><th>% of Fleet Breakdowns</th><th>% of Downtime</th><th>VIMS Detectable?</th><th>Primary Attack</th></tr>
+<tr><td><strong>F -- Infant Mortality</strong></td><td><strong>53%</strong></td><td><strong>82%</strong></td><td>Yes (post-repair monitoring)</td><td>Fix repair quality</td></tr>
+<tr><td><strong>E -- Random</strong></td><td>~22%</td><td>~9%</td><td>No (completely blind)</td><td>Rapid response, spare parts</td></tr>
+<tr><td><strong>C -- Fatigue (gradual)</strong></td><td>~14%</td><td>Low</td><td>Yes (VIMS trend)</td><td>Condition-based monitoring</td></tr>
+<tr><td><strong>B -- Wear-out</strong></td><td>Subset of above</td><td>High per event</td><td>Component life tracking</td><td>Scheduled replacement</td></tr>
+<tr><td><strong>A -- Bathtub</strong></td><td>Overlaps F + B</td><td>Overlaps F + B</td><td>Both phases detectable</td><td>Two-phase monitoring</td></tr>
+<tr><td><strong>D -- Break-in</strong></td><td>Small subset</td><td>Low</td><td>Fleet average comparison</td><td>Accept steady-state rate</td></tr>
 </table>
 
 <div class="finding critical">
-<strong>Key Finding:</strong> Infant mortality accounts for 53% of events but 82% of ALL downtime hours (1,225,392 hours). 66-68% of Engine and Power Train repairs fail within 7 days. This is not a prediction problem -- it's a repair quality problem.
+<strong>Key Finding:</strong> Pattern F (Infant Mortality) dominates the fleet: 53% of events, 82% of downtime (1,225,392 hours). 66-68% of Engine and Power Train repairs fail within 7 days. In RCM terms, the fleet's primary failure mode is maintenance-induced -- the repairs themselves are the leading cause of breakdowns. This is not a prediction problem; it's a repair quality problem.
+</div>
+
+<div class="finding success">
+<strong>RCM Insight:</strong> Pattern C (Fatigue/gradual degradation) is where predictive maintenance and ML models add the most value -- these are the failures with a visible P-F curve. But at only ~14% of breakdowns, even a perfect predictive model addresses a minority of the problem. Fixing Pattern F (repair quality) has 6x more impact.
 </div>
 
 <h2>Infant Mortality Rate by System</h2>
